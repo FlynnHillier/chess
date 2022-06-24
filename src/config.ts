@@ -1,9 +1,10 @@
+import path from "path"
 const config = {
     express:{
         port:5000,
     },
-    misc:{
-        logdir:"/"
+    logs:{
+        outDir:path.join(__dirname,"logs")
     }
 }
 
