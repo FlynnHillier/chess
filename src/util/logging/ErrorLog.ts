@@ -1,5 +1,5 @@
-import Logger from "./../util/logger";
-import config from "./../config"
+import Logger from "./logger";
+import config from "../../config"
 
 let errorLogger = new Logger(config.logs.outDir,"errors");
 
