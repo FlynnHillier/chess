@@ -1,7 +1,8 @@
 import config from "./config"
 
 import * as express from "express"
-import apiRouter from "./api/api-router"
+import apiRouter from "./routes/api/api-router"
+import oAuthRouter from "./routes/oAuth/oAuth-router"
 
 import session, { MemoryStore, Store } from "express-session"
 import MongoSessionStore from "connect-mongo"
@@ -28,7 +29,14 @@ router.use(session({
     }) as unknown as Store
 }))
 
-router.use("a",apiRouter)
+router.use("/a",apiRouter)
+router.use("/o",oAuthRouter)
+
+router.get("/login",(req,res)=>{
+    res.send("<a href='/o/google/'>login</a>")
+})
+
+
 
 router.use("*",(req: express.Request,res : express.Response,next)=>{
     res.status(404).send("404")
@@ -36,7 +44,10 @@ router.use("*",(req: express.Request,res : express.Response,next)=>{
 
 router.use((errStack : string ,req:express.Request,res:express.Response,next : express.NextFunction)=>{
     ErrorLogger.log("unexpected",errStack,req.method,req.url,req.headers,req.body)
-    res.status(500).send("500 internal server error")
+    res.status(500)
+
+    res.send(process.env.NODE_ENV === "development" ? errStack : "500 internal server error.")
+
 })
 
 

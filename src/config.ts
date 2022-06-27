@@ -7,6 +7,12 @@ const config = {
             mongo_store_uri:process.env.MONGO_URI
         }
     },
+    oAuth:{
+        google:{
+            clientID:process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret:process.env.GOOGLE_CLIENT_ID as string,
+        }
+    },
     logs:{
         outDir:path.join(__dirname,"logs")
     }
