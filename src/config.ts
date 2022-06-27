@@ -4,13 +4,15 @@ const config = {
         port:5000,
         session:{
             secret:process.env.secret || "Lima Mike Alpha Oscar",
-            mongo_store_uri:process.env.MONGO_URI
         }
+    },
+    mongo:{
+        connect_uri:process.env.MONGO_URI as string,
     },
     oAuth:{
         google:{
             clientID:process.env.GOOGLE_CLIENT_ID as string,
-            clientSecret:process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret:process.env.GOOGLE_CLIENT_SECRET as string,
         }
     },
     logs:{

@@ -8,6 +8,7 @@ import session, { MemoryStore, Store } from "express-session"
 import MongoSessionStore from "connect-mongo"
 
 import ErrorLogger from "./util/logging/ErrorLog"
+import passport from "passport"
 
 const router = express.Router()
 
@@ -22,20 +23,18 @@ router.use(session({
         maxAge: 1000 * 60 * 60 * 24 * 14, //2 weeks
     },
     store:MongoSessionStore.create({
-        mongoUrl:config.express.session.mongo_store_uri,
+        mongoUrl:config.mongo.connect_uri,
         ttl:60 * 60 * 24 * 14, //2 weeks
         autoRemove:"interval",
         autoRemoveInterval:10,
     }) as unknown as Store
 }))
 
+router.use(passport.initialize())
+router.use(passport.session())
+
 router.use("/a",apiRouter)
 router.use("/o",oAuthRouter)
-
-router.get("/login",(req,res)=>{
-    res.send("<a href='/o/google/'>login</a>")
-})
-
 
 
 router.use("*",(req: express.Request,res : express.Response,next)=>{
