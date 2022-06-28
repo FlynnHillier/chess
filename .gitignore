@@ -2,5 +2,8 @@
 package-lock.json
 node_modules
 
+#env
+src/.env
+
 #build
 dist
