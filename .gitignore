@@ -1,9 +1,10 @@
 #dependencies
-package-lock.json
 node_modules
-
-#env
-src/.env
+package-lock.json
+yarn.lock
 
 #build
 dist
+
+#env
+.env
