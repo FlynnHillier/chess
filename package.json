@@ -12,12 +12,14 @@
   },
   "homepage": "https://github.com/FlynnHillier/chess-online#readme",
   "scripts": {
-    "install:server": "cd server && (yarn install || npm install)",
-    "install:client": "cd client && (yarn install || npm install)",
-    "postinstall": "npm-run-all install:* || echo '**INSTALL SUB-PACKAGES MANUALLY, OR INSTALL 'npm-run-all' AND RE-RUN INSTALLATION**' ",
-    "build": "tsc",
-    "build:watch": "tsc --watch"
+    "build": "tsc -p .",
+    "build:watch": "tsc -p . --watch",
+    "start:server":"node dist/server/src/index.js"
   },
+
+  "private":true,
+  "workspaces":["src/server","src/client"],
+
   "devDependencies": {
     "ts-node": "^10.8.2",
     "typescript": "^4.7.4"
