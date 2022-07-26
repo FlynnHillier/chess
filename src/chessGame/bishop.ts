@@ -14,8 +14,8 @@ class Bishop implements Piece {
             throw Error(`invalid destination, not within movableTo.`)
         }
         this.parentBoard.onPieceMove(this as unknown as Piece,destination)
-        this.location = destination
-        this.updateVision()
+        // this.location = destination
+        // this.updateVision()
     }
 
     _walk(vector:Vector){
