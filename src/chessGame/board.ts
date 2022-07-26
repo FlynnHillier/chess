@@ -73,8 +73,17 @@ class ChessBoard implements Board {
     }
 
 
-    _ConcatUnique(array_one:Array<any>, array_two:Array<any>){
+    _ConcatUnique(array_one:Array<any>, array_two:Array<any>,exclude? : Array<any>){
+        
+        for(let elem of array_one){
+            if(exclude?.includes(elem)){
+                array_one.splice(array_one.indexOf(elem),1)
+            }
+        }
         for(let elem of array_two){
+            if(exclude?.includes(elem)){
+                continue
+            }
             if(!array_one.includes(elem)){
                 array_one.push(elem)
             }
@@ -86,16 +95,19 @@ class ChessBoard implements Board {
         let originTile = this.getTile(piece.location) as Tile
         let targetTile = this.getTile(moveTo)
 
+        let excludeFromUpdate : Piece[] = [piece]
 
         originTile.occupant = null
 
         if(targetTile.occupant !== null){
             this.captured[piece.perspective].push(targetTile.occupant)
             targetTile.occupant.captured = true
+            targetTile.occupant.location = [-1,-1]
+            excludeFromUpdate.push(targetTile.occupant)
         }
         targetTile.occupant = piece
 
-        const piecesForVisionUpdate =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
+        const piecesForVisionUpdate =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
 
         targetTile.inVisionOf = []
         originTile.inVisionOf = []
@@ -103,6 +115,9 @@ class ChessBoard implements Board {
         for(let anotherPiece of piecesForVisionUpdate){ //updates vision of all affected tiles by the move at hand
             anotherPiece.updateVision()
         }
+
+        piece.location = moveTo
+        piece.updateVision()
     }
 
 
