@@ -15,6 +15,7 @@ export interface Piece {
     movableTo:Coordinate[]
     species: Species
     move(destination:Coordinate):void
+    _walk(vector:Vector,steps:number = -1) : Coordinate[]
     updateVision():void
 }
 

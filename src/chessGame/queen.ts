@@ -1,14 +1,18 @@
 import { Piece } from "./types";
 import BlankPiece from "./piece";
 
-class Bishop extends BlankPiece implements Piece {
+class Rook extends BlankPiece implements Piece {
     updateVision(): void {
         this.movableTo = 
-        this._walk([1,1])
+        this._walk([1,0])
+        .concat(this._walk([0,1]))
+        .concat(this._walk([-1,0]))
+        .concat(this._walk([0,-1]))
+        .concat(this._walk([1,1]))
         .concat(this._walk([1,-1]))
         .concat(this._walk([-1,-1]))
         .concat(this._walk([-1,1]))
     }   
 }
 
-export default Bishop
+export default Rook
