@@ -1,4 +1,4 @@
-import { Board,Perspective, Piece,Tile,Coordinate,PieceConstrucor} from "./types"
+import { Board,Perspective, Piece,Tile,Coordinate} from "./types"
 
 import Bishop from "./bishop";
 import TileObject from "./tile";
@@ -85,9 +85,6 @@ class ChessBoard implements Board {
     onPieceMove(piece: Piece,moveTo:Coordinate): void {
         let originTile = this.getTile(piece.location) as Tile
         let targetTile = this.getTile(moveTo)
-
-        originTile.inVisionOf = []
-        targetTile.inVisionOf = []
 
 
         originTile.occupant = null
