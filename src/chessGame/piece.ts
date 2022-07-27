@@ -3,7 +3,7 @@ import { Coordinate,Piece,Board,Species,Perspective,Vector} from "./types";
 class BlankPiece implements Piece { //
     initialised:boolean = false
     captured: boolean = false
-    species : Species = "bishop"
+    species : Species = "generic"
     movableTo: Coordinate[] = []
     location: [number, number] = [-1,-1];
 
