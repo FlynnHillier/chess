@@ -1,7 +1,7 @@
 import { Piece,Species } from "./types";
 import BlankPiece from "./piece";
 
-class Queen extends BlankPiece implements Piece {
+export class Queen extends BlankPiece implements Piece {
     species: Species = "queen"
 
     updateVision(): void {
