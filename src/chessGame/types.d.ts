@@ -2,7 +2,7 @@ type Perspective = "white" | "black"
 
 export type Vector = [insideIndexShift: number,outsideIndexShift: number]
 
-export type Species = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king"
+export type Species = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king" | "generic"
 
 export type Coordinate = [insideIndex: number,outsideIndex: number]
 
