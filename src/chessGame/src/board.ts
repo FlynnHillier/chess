@@ -1,10 +1,9 @@
 import { Board,Perspective, Piece,Tile,Coordinate} from "./types"
-
-import Bishop from "./bishop";
 import TileObject from "./tile";
 
+import Bishop from "./bishop";
 
-class ChessBoard implements Board {
+export class ChessBoard implements Board {
     captured: { white: Piece[]; black: Piece[] } = {
         white:[],
         black:[]
