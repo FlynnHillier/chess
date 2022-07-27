@@ -1,7 +1,9 @@
-import { Piece } from "./types";
+import { Piece,Species } from "./types";
 import BlankPiece from "./piece";
 
-class Rook extends BlankPiece implements Piece {
+class Queen extends BlankPiece implements Piece {
+    species: Species = "queen"
+
     updateVision(): void {
         this.movableTo = 
         this._walk([1,0])
@@ -15,4 +17,4 @@ class Rook extends BlankPiece implements Piece {
     }   
 }
 
-export default Rook
+export default Queen
