@@ -1,4 +1,4 @@
-type Perspective = "white" | "black"
+export type Perspective = "white" | "black"
 
 export type Vector = [insideIndexShift: number,outsideIndexShift: number]
 
@@ -15,7 +15,7 @@ export interface Piece {
     movableTo:Coordinate[]
     species: Species
     move(destination:Coordinate):void
-    _walk(vector:Vector,steps:number = -1) : Coordinate[]
+    _walk(vector:Vector,steps:number) : Coordinate[]
     updateVision():void
 }
 
