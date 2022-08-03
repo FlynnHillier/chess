@@ -8,34 +8,31 @@ export class ChessBoard implements Board {
         white:[],
         black:[]
     }
-    tileMap: Tile[][] = []
+    tileMap: Tile[] = []
     initialised = false
+    rowLength = -1
 
 
 
 
     constructor(public perspective:Perspective){}
 
-    init(pieceMap?: (Piece | null)[][]) {
-        if(!pieceMap){
-            pieceMap = [
-                [null,null,new Bishop(this,"white")],
-                [null,null,null],
-                [null,null,null]
-            ]
+    init(params:{pieceMap?:(Piece | null)[],tilesPerRow?:number}) {
+        const { pieceMap = [null,null,null,null,null,null] , tilesPerRow = 3} = params
+
+        if(pieceMap.length % tilesPerRow !== 0){
+            throw Error(`invalid pieceMap provided for rowLength of '${tilesPerRow}', pieceMap must be of a length that is an exact multiple of provided rowLength.`)
         }
 
 
+        this.rowLength = tilesPerRow
         let piecesForInit : Piece[] = []
 
-        for(let row of pieceMap){ //populate this.tileMap
-            this.tileMap.push([])
-            for(let occupant of row){
-                if(occupant !== null){
-                    piecesForInit.push(occupant)
-                }
-                this.tileMap[pieceMap.indexOf(row)].push(new TileObject(occupant))
+        for(let piece of pieceMap){
+            if(piece !== null){
+                piecesForInit.push(piece)
             }
+            this.tileMap.push(new TileObject(piece))
         }
 
         for(let piece of piecesForInit){
@@ -54,21 +51,18 @@ export class ChessBoard implements Board {
 
 
     _getPieceLocation(piece:Piece) : [number,number]{
-        for(let i = 0; i < this.tileMap.length;i++){
-            const matchingTile = this.tileMap[i].find((tile)=>piece === tile.occupant)
+        const matchingTile = this.tileMap.find((tile)=>piece === tile.occupant)
 
-            if(matchingTile){
-                return [
-                    this.tileMap[i].indexOf(matchingTile),
-                    i
-                ]
+        if(!matchingTile){
+            throw {
+                message:"on _getPieceLocation() could not locate piece within tileMap",
+                piece:piece
             }
         }
 
-        throw {
-            message:"on _getPieceLocation() could not locate piece within tileMap",
-            piece:piece
-        }
+        const tileIndex = this.tileMap.indexOf(matchingTile)
+
+        return this._indexToCoordinate(tileIndex)
     }
 
 
@@ -121,11 +115,28 @@ export class ChessBoard implements Board {
 
 
     tileDoesExist(location:Coordinate){
-        return (location[1] >= 0 && location[1] < this.tileMap.length && location[0] >= 0 && location[0] < this.tileMap[0].length) //relies on all inside arrays being fixed same length, or will break.
+        if(location[0] < 0 || location[1] < 0){
+            return false
+        }
+
+        const index = this._coordinateToIndex(location)
+        return (index >= 0 && index < this.tileMap.length) //relies on all inside arrays being fixed same length, or will break.
     }
 
     getTile(location: Coordinate): Tile{
-        return this.tileMap[location[1]][location[0]]
+        return this.tileMap[this._coordinateToIndex(location)]
+    }
+
+    _indexToCoordinate(index:number) : Coordinate {
+        return [Math.floor(index / this.rowLength),index % this.rowLength]
+    }
+
+    _coordinateToIndex(coordinate:Coordinate) : number {
+        if(coordinate[0] < 0 || coordinate[1] < 0){
+           throw Error(`cannot convert coordinate of negative indexes to a valid index: Coordinate: [${coordinate[0]},${coordinate[1]}] `)
+        }
+
+        return (coordinate[0] * this.rowLength) + coordinate[1]
     }
 }
 

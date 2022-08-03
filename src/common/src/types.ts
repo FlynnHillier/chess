@@ -27,7 +27,8 @@ export interface Tile {
 
 export interface Board {
     initialised:boolean
-    tileMap:Tile[][],
+    tileMap:Tile[],
+    rowLength:number,
     captured: {
         white: Piece[],
         black: Piece[]
@@ -37,7 +38,7 @@ export interface Board {
     getTile(location:Coordinate):Tile
     tileDoesExist(location:Coordinate) : boolean
     _ConcatUnique(array_one:Array<any>,array_two:Array<any>):Array<any>
-    init(tileMap:(Piece | null)[][]):void
+    init({tileMap,tilesPerRow}:{tileMap?:(Piece | null)[],tilesPerRow?:number}):void
     _initialisePiece(piece:Piece) : void
     _getPieceLocation(piece:Piece) : [number,number]
 }
