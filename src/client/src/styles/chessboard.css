@@ -1,0 +1,36 @@
+.chessboard {
+    padding: 0px;
+    display:grid;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fit,minmax(0,1fr));
+    grid-template-rows: repeat(auto-fit,minmax(0,1fr));
+    height:500px;
+    width:500px;
+    overflow: hidden;
+    background-color: black;
+    grid-gap:2px;
+    border:2px solid black;
+}
+
+.chessboard > * {
+    min-width: 0px;
+}
+
+.chessboard  > .chess-tile {
+    min-width: 0px;
+    min-height: 0px;
+    width:1fr;
+    height:1fr;
+}
+
+.chessboard  > .chess-tile.occupied:hover {
+    cursor: pointer;
+}
+
+.chessboard > .chess-tile:nth-child(even) {
+    background-color: lightgray;
+}
+
+.chessboard > .chess-tile:nth-child(odd) {
+    background-color: darkgray;
+}
