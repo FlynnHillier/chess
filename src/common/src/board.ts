@@ -2,6 +2,7 @@ import { Board,Perspective, Piece,Tile,Coordinate} from "./types"
 import TileObject from "./tile";
 
 import Bishop from "./bishop";
+import Rook from "./rook";
 
 export class ChessBoard implements Board {
     captured: { white: Piece[]; black: Piece[] } = {
@@ -17,8 +18,7 @@ export class ChessBoard implements Board {
 
     constructor(public perspective:Perspective){}
 
-    init(params:{pieceMap?:(Piece | null)[],tilesPerRow?:number}) {
-        const { pieceMap = [null,null,null,null,null,null] , tilesPerRow = 3} = params
+    init({pieceMap = [null,null,null,null,new Rook(this,"white"),null,null,null,null] ,tilesPerRow = 3} : {pieceMap?:(Piece | null)[],tilesPerRow?:number} = {}) {
 
         if(pieceMap.length % tilesPerRow !== 0){
             throw Error(`invalid pieceMap provided for rowLength of '${tilesPerRow}', pieceMap must be of a length that is an exact multiple of provided rowLength.`)
