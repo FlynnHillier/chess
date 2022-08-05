@@ -128,7 +128,7 @@ export class ChessBoard implements Board {
     }
 
     _indexToCoordinate(index:number) : Coordinate {
-        return [Math.floor(index / this.rowLength),index % this.rowLength]
+        return [index % this.rowLength,Math.floor(index / this.rowLength)]
     }
 
     _coordinateToIndex(coordinate:Coordinate) : number {
@@ -136,7 +136,7 @@ export class ChessBoard implements Board {
            throw Error(`cannot convert coordinate of negative indexes to a valid index: Coordinate: [${coordinate[0]},${coordinate[1]}] `)
         }
 
-        return (coordinate[0] * this.rowLength) + coordinate[1]
+        return (coordinate[1] * this.rowLength) + coordinate[0]
     }
 }
 
