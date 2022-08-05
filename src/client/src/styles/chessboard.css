@@ -35,7 +35,20 @@
     background-color: darkgray;
 }
 
-.chessboard > .chess-tile > img {
+.chess-piece {
+    position: relative;
+}
+
+.chess-piece > img {
+    position: absolute;
     width: 100%;
     height: auto;
+}
+
+.chess-piece > img:hover {
+    cursor:grab;
+}
+
+.chess-piece > img:active {
+    cursor:grabbing;
 }
