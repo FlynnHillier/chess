@@ -17,43 +17,20 @@ export interface ImageLayers {
 }
 
 const Chessboard = (props:Props) => {
-    let [hoveredTile,setHoveredTile] = useState<null | [number,number]>(null)
-    let [focusedTileOccupant,setFocusedTileOccupant] = useState<null | Piece>(null)
-    let [selectedPiece,setSelectedPiece] = useState<null | Piece>(null)
-    let [selectedPieceCoordinate,setSelectedPieceCoordinate] = useState<null | Coordinate>(null)
-    let [focusedPieceMovableTo,setFocusedPieceMovableTo] = useState<Coordinate[]>([])
     let [tileOverlaysMap,setTileOverlaysMap] = useState<ImageLayers[]>(props.game.tileMap.map(()=>{return {focused:false,movableTo:false}}))
+    let [hoveredTile,setHoveredTile] = useState<null | [number,number]>(null)
 
+    let [focusedPiece,setFocusedPiece] = useState<null | Piece>(null)
+    let [isDraggingPiece,setIsDraggingPiece] = useState<boolean>(false)
 
-    useEffect(()=>{
-        if(selectedPiece !== null){
-            setSelectedPieceCoordinate(selectedPiece?.location)
-        } else{
-            setSelectedPieceCoordinate(null)
-        }
-    },[selectedPiece])
+    function _arrayEquals(a:Array<any>,b:Array<any>){
+        return JSON.stringify(a) === JSON.stringify(b)
+    }
 
-    useEffect(()=>{
-        if(focusedTileOccupant !== null){
-            setTileOverlaysMap((prevTileOverlaysMap)=>{
-                return prevTileOverlaysMap.map((tileOverlays,index)=>({...tileOverlays,focused: JSON.stringify(focusedTileOccupant!.location) === JSON.stringify(_indexToCoordinate(index))}))
-            })
-            setFocusedPieceMovableTo(props.game.getTile(focusedTileOccupant.location).occupant!.movableTo)
-        } else{
-            setTileOverlaysMap((prevTileOverlaysMap)=>{
-                return prevTileOverlaysMap.map((tileOverlays)=>({...tileOverlays,focused: false}))
-            })
-            setFocusedPieceMovableTo([])
-        }
-    },[focusedTileOccupant,focusedTileOccupant?.location])
+    function _arrayIncludesArray(parentArray:Array<any>,childArray:Array<any>){
+        return childArray.length !== 0 && parentArray.some(a => childArray.every((v,i)=> v === a[i]))
+    }
 
-
-    useEffect(()=>{
-        setTileOverlaysMap((prevTileOverlaysMap)=>{ //updates all 'movableTo' attributes for all imageLayers on 'focusedPieceMovableTo' change (to false if not included within movable to, true if is)
-            return prevTileOverlaysMap.map((tileOverlays,index)=>({...tileOverlays,movableTo: focusedPieceMovableTo.some(a => _indexToCoordinate(index).every((v,i)=> v === a[i]))}))
-        })
-    },[focusedPieceMovableTo])
-    
     function _indexToCoordinate(index:number) : Coordinate{
         return [
             index % props.game.rowLength,
@@ -61,24 +38,70 @@ const Chessboard = (props:Props) => {
         ]
     }
 
+    useEffect(()=>{ //updates focused tile overlay
+        if(focusedPiece !== null){
+            setTileOverlaysMap((prevTileOverlaysMap)=>{
+                return prevTileOverlaysMap.map((tileOverlays,index)=>({...tileOverlays,focused: _arrayEquals(focusedPiece!.location,_indexToCoordinate(index))}))
+            })
+        } else{
+            setTileOverlaysMap((prevTileOverlaysMap)=>{
+                return prevTileOverlaysMap.map((tileOverlays)=>({...tileOverlays,focused: false}))
+            })
+        }
+    },[focusedPiece?.location])
+
+
+    useEffect(()=>{
+        if(focusedPiece !== null){  //updates all 'movableTo' attributes for all imageLayers on 'focusedPieceMovableTo' change (to false if not included within movable to, true if is)
+            setTileOverlaysMap((prevTileOverlaysMap)=>{
+                return prevTileOverlaysMap.map((tileOverlays,index)=>({...tileOverlays,movableTo: _arrayIncludesArray(focusedPiece!.movableTo,_indexToCoordinate(index))}))
+            })
+        } else {
+            setTileOverlaysMap((prevTileOverlaysMap)=>{ //sets all to false
+                return prevTileOverlaysMap.map((tileOverlays)=>({...tileOverlays,movableTo: false}))
+            })
+        }   
+    },[focusedPiece?.movableTo])
+
+
+
+    
+
     function onMouseDown(){
+        setIsDraggingPiece(false)
         if(hoveredTile !== null){
-            const hoveredTileOccupant = props.game.getTile(hoveredTile).occupant 
-            setFocusedTileOccupant(hoveredTileOccupant)   
-            setSelectedPiece(hoveredTileOccupant)
+            if(focusedPiece && _arrayIncludesArray(focusedPiece.movableTo,hoveredTile)){
+                focusedPiece.move(hoveredTile)
+                setIsDraggingPiece(true) //!!!THIS SHOULD NOT BE HERE!!! is a temporary fix that forces state update to cause remap
+                onPieceMove()
+            } else {
+                const hoveredTileOccupant = props.game.getTile(hoveredTile).occupant 
+                setFocusedPiece(hoveredTileOccupant)   
+
+                if(hoveredTileOccupant !== null){
+                    setIsDraggingPiece(true)
+                }
+            }
         }
     }
 
     function onMouseUp(){
-        if(selectedPiece){
-            if(hoveredTile !== null && JSON.stringify(hoveredTile) !== JSON.stringify(selectedPieceCoordinate)){
-                if(selectedPiece.movableTo.length !== 0 && selectedPiece.movableTo.some(a=> hoveredTile?.every((v,i)=> v === a[i]))){
-                    selectedPiece.move(hoveredTile)
+        if(isDraggingPiece && focusedPiece){
+            setIsDraggingPiece(false)
+            if(hoveredTile !== null && !_arrayEquals(hoveredTile,focusedPiece.location)){
+                if(_arrayIncludesArray(focusedPiece.movableTo,hoveredTile)){
+                    focusedPiece.move(hoveredTile)
+                    onPieceMove()
                 }
             }
-            setSelectedPiece(null)
         }
     }
+
+
+    function onPieceMove(){
+
+    }
+
 
     return (
         <Container fluid className="d-flex justify-content-center p-0">
@@ -93,13 +116,13 @@ const Chessboard = (props:Props) => {
                         const location = _indexToCoordinate(index)
                         return(
                             <ChessTile
-                                        overlays={tileOverlaysMap[index]}
-                                        key={`key_chess-tile-${index}`}
-                                        selectedPieceCoordinate={selectedPieceCoordinate}
-                                        setHoveredTile={setHoveredTile}
-                                        occupant={occupant}
-                                        isDarkTile={(((index % props.game.rowLength) + 1) % 2 === 0 && ((Math.floor(index / props.game.rowLength) + 1) % 2 !== 0)) || (((index % props.game.rowLength) + 1) % 2 !== 0 && ((Math.floor(index / props.game.rowLength) + 1) % 2 === 0))}
-                                        position={location}
+                                overlays={tileOverlaysMap[index]}
+                                key={`key_chess-tile-${index}`}
+                                focusedTileCoordinate={focusedPiece?.location || null}
+                                setHoveredTile={setHoveredTile}
+                                occupant={occupant}
+                                isDarkTile={(((index % props.game.rowLength) + 1) % 2 === 0 && ((Math.floor(index / props.game.rowLength) + 1) % 2 !== 0)) || (((index % props.game.rowLength) + 1) % 2 !== 0 && ((Math.floor(index / props.game.rowLength) + 1) % 2 === 0))}
+                                position={location}
                             />
                         )
                     })

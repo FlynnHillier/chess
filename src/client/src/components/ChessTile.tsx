@@ -8,7 +8,7 @@ interface Props {
     position:Coordinate
     isDarkTile:boolean,
     setHoveredTile:(arg:Coordinate | null)=>void,
-    selectedPieceCoordinate:Coordinate | null,
+    focusedTileCoordinate:Coordinate | null,
     overlays:ImageLayers
     // highlight:{
     //     movableTo:boolean,
@@ -17,17 +17,17 @@ interface Props {
 }
 
 
-const ChessTile = ({occupant,position,isDarkTile,setHoveredTile,selectedPieceCoordinate,overlays}:Props) => {
+const ChessTile = ({occupant,position,isDarkTile,setHoveredTile,focusedTileCoordinate,overlays}:Props) => {
   let [originClientLocation,setOriginClientLocation] = useState<{x:number,y:number}>({x:-1,y:-1})
   let [isHovered,setIsHovered] = useState<boolean>(false)
-  let [isSelected,setIsSelected] = useState<boolean>(JSON.stringify(selectedPieceCoordinate) === JSON.stringify(position))
+  let [isFocused,setIsFocused] = useState<boolean>(JSON.stringify(focusedTileCoordinate) === JSON.stringify(position))
 
 
   let [pieceImageOffset,setPieceImageOffset] = useState<{x:number,y:number}>({x:0,y:0})
 
   useEffect(()=>{
-    setIsSelected(JSON.stringify(selectedPieceCoordinate) === JSON.stringify(position))
-  },[selectedPieceCoordinate])
+    setIsFocused(JSON.stringify(focusedTileCoordinate) === JSON.stringify(position))
+  },[focusedTileCoordinate])
   
   function onMouseEnter(){
     setHoveredTile(position)
@@ -38,7 +38,7 @@ const ChessTile = ({occupant,position,isDarkTile,setHoveredTile,selectedPieceCoo
   }
 
   function onMouseMove(e:React.MouseEvent){
-    if(isSelected){
+    if(isFocused){
       
     }
   }
