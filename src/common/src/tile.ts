@@ -10,6 +10,10 @@ class TileObject implements Tile {
             this.inVisionOf.push(piece)
         }
     }
+
+    onNoLongerInVisionOf(piece:Piece) : void {
+        this.inVisionOf.splice(this.inVisionOf.indexOf(piece),1)
+    }
 }
 
 

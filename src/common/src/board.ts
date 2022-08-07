@@ -12,6 +12,13 @@ export class ChessBoard implements Board {
     tileMap: Tile[] = []
     initialised = false
     rowLength = -1
+    checkMated=false
+    king : {white:Piece| null, black:Piece | null} = {
+        white:null,
+        black:null
+    }
+    forVisionUpdateOnEveryMove : Piece[] = [] 
+
 
 
 
@@ -24,29 +31,58 @@ export class ChessBoard implements Board {
             throw Error(`invalid pieceMap provided for rowLength of '${tilesPerRow}', pieceMap must be of a length that is an exact multiple of provided rowLength.`)
         }
 
+        let kingPresence ={
+            white:false,
+            black:false
+        }
 
         this.rowLength = tilesPerRow
+        this.forVisionUpdateOnEveryMove = []
+
         let piecesForInit : Piece[] = []
 
         for(let piece of pieceMap){
             if(piece !== null){
+                if(piece.species === "king"){
+                    if(kingPresence[piece.perspective]){
+                        throw Error(`invalid game setup - only one king per perspective is allowed. ${piece.perspective} perspective has more than one.`)
+                    }
+                    kingPresence[piece.perspective] = true
+                    this.king[piece.perspective] = piece
+                }
                 piecesForInit.push(piece)
+                if(piece._pathingCharacteristics.isOnlyMovableToSafeTiles){
+                    this.forVisionUpdateOnEveryMove.push(piece)
+                }
             }
             this.tileMap.push(new TileObject(piece))
+        }
+
+        if(!kingPresence.white || !kingPresence.black){
+            throw Error(`invalid game setup - both perspectives must have a king.`)
         }
 
         for(let piece of piecesForInit){
             this._initialisePiece(piece)
         }
 
+        for(let piece of this.forVisionUpdateOnEveryMove){
+            this._initialisePiece(piece,{isSecondInit:true})
+        }
+
         this.initialised = true
     }
 
+    isCheck(){
 
-    _initialisePiece(piece:Piece) : void{
+    }
+
+    _initialisePiece(piece:Piece,{isSecondInit = false}:{isSecondInit?:boolean} = {}) : void{
         piece.location = this._getPieceLocation(piece)
         piece.updateVision()
-        piece.initialised = true
+        if(!(piece._pathingCharacteristics.isOnlyMovableToSafeTiles === true && isSecondInit === false)){
+            piece.initialised = true
+        }
     }
 
 
@@ -92,15 +128,14 @@ export class ChessBoard implements Board {
 
         originTile.occupant = null
 
-        if(targetTile.occupant !== null){
-            this.captured[piece.perspective].push(targetTile.occupant)
-            targetTile.occupant.captured = true
-            targetTile.occupant.location = [-1,-1]
+        if(targetTile.occupant !== null){ //capture piece in target location
             excludeFromUpdate.push(targetTile.occupant)
+            this.capturePiece(targetTile.occupant)
         }
-        targetTile.occupant = piece
 
-        const piecesForVisionUpdate =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
+        targetTile.occupant = piece //move to destination tile
+
+        const piecesForVisionUpdate : Piece[] =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
 
         targetTile.inVisionOf = []
         originTile.inVisionOf = []
@@ -111,8 +146,43 @@ export class ChessBoard implements Board {
 
         piece.location = moveTo
         piece.updateVision()
+
+        this.updateMoveToSafeTileOnlyPieces()
     }
 
+    capturePiece(piece:Piece){
+        this.getTile(piece.location).occupant === null
+        piece.captured = true
+        piece.location = [-1,-1]
+        this.captured[piece.perspective === "white" ? "black" : "white"].push(piece)
+        for(let location of piece.inVision){
+            this.getTile(location).onNoLongerInVisionOf(piece)
+        }
+        piece.inVision = []
+        piece.movableTo = []
+    }
+
+
+    updateMoveToSafeTileOnlyPieces() : void{
+        for (let piece of this.forVisionUpdateOnEveryMove){
+            piece.updateVision()
+        }
+
+        for (let piece of this.forVisionUpdateOnEveryMove){
+            piece.updateVision()
+        }
+    }
+
+
+
+    tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective) : boolean{
+        for(let piece of tile.inVisionOf){
+            if(piece.perspective === perspective){
+                return true
+            }
+        }
+        return false
+    }
 
     tileDoesExist(location:Coordinate){
         if(location[0] < 0 || location[1] < 0){
