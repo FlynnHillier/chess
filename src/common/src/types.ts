@@ -7,6 +7,8 @@ export type Species = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king" |
 export type Coordinate = [insideIndex: number,outsideIndex: number]
 
 export interface Piece {
+    inVision: Coordinate[]
+    _pathingCharacteristics: { steps:number,vectors:Vector[],isOnlyMovableToSafeTiles:boolean }
     initialised:boolean
     parentBoard:Board
     perspective:Perspective
@@ -15,14 +17,16 @@ export interface Piece {
     movableTo:Coordinate[]
     species: Species
     move(destination:Coordinate):void
-    _walk(vector:Vector,steps:number) : Coordinate[]
+    _walk(vector:Vector,{}:{steps:number}) : {inVision:Coordinate[],movableTo:Coordinate[]}
     updateVision():void
+    generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]}
 }
 
 export interface Tile {
     occupant:null | Piece,
     inVisionOf:Piece[],
     onInVisionOf(piece:Piece):void
+    onNoLongerInVisionOf(piece:Piece) : void
 }
 
 export interface Board {
@@ -34,6 +38,12 @@ export interface Board {
         black: Piece[]
     }
     perspective:Perspective,
+    king: {
+        white:Piece | null,
+        black:Piece | null
+    }
+
+    tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective):boolean
     onPieceMove(piece:Piece,moveTo:Coordinate):void
     getTile(location:Coordinate):Tile
     tileDoesExist(location:Coordinate) : boolean

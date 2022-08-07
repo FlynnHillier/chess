@@ -1,16 +1,13 @@
-import { Piece,Species } from "./types";
+import { Piece,Species,Vector } from "./types";
 import BlankPiece from "./piece";
 
 export class Bishop extends BlankPiece implements Piece {
     species: Species = "bishop"
-
-    updateVision(): void {
-        this.movableTo = 
-        this._walk([1,1])
-        .concat(this._walk([1,-1]))
-        .concat(this._walk([-1,-1]))
-        .concat(this._walk([-1,1]))
-    }   
+    _pathingCharacteristics: { steps:number,vectors:Vector[],isOnlyMovableToSafeTiles:boolean } = {
+        steps:-1,
+        vectors:[[1,1],[1,-1],[-1,-1],[-1,1]],
+        isOnlyMovableToSafeTiles:false,
+    }
 }
 
 export default Bishop
