@@ -17,6 +17,7 @@ export interface ImageLayers {
 }
 
 const Chessboard = (props:Props) => {
+    let [tileMap,setTileMap] = useState(props.game.tileMap)
     let [tileOverlaysMap,setTileOverlaysMap] = useState<ImageLayers[]>(props.game.tileMap.map(()=>{return {focused:false,movableTo:false}}))
     let [hoveredTile,setHoveredTile] = useState<null | [number,number]>(null)
 
@@ -37,6 +38,25 @@ const Chessboard = (props:Props) => {
             Math.floor(index / props.game.rowLength),
         ]
     }
+
+    function renderTileMap(){
+        setTileMap(()=>{
+            return [...props.game.tileMap]
+        })
+    }
+
+
+    useEffect(()=>{
+        console.log(`is dragging ${isDraggingPiece}`)
+    },[isDraggingPiece])
+
+
+    useEffect(()=>{
+        if(hoveredTile === null && isDraggingPiece === true){
+            setIsDraggingPiece(false)
+        }
+    },[hoveredTile])
+
 
     useEffect(()=>{ //updates focused tile overlay
         if(focusedPiece !== null){
@@ -72,7 +92,6 @@ const Chessboard = (props:Props) => {
         if(hoveredTile !== null){
             if(focusedPiece && _arrayIncludesArray(focusedPiece.movableTo,hoveredTile)){
                 focusedPiece.move(hoveredTile)
-                setIsDraggingPiece(true) //!!!THIS SHOULD NOT BE HERE!!! is a temporary fix that forces state update to cause remap
                 onPieceMove()
             } else {
                 const hoveredTileOccupant = props.game.getTile(hoveredTile).occupant 
@@ -99,19 +118,19 @@ const Chessboard = (props:Props) => {
 
 
     function onPieceMove(){
-
+        renderTileMap()
     }
 
 
     return (
         <Container fluid className="d-flex justify-content-center p-0">
             <div 
-                className="chessboard"
+                className={`chessboard ${isDraggingPiece ? "draggingPiece" : ""}`}
                 onMouseDown={onMouseDown}
                 onMouseUp={onMouseUp}
             >
                 {
-                    props.game.tileMap.map((tile,index)=>{
+                    tileMap.map((tile,index)=>{
                         const occupant = tile.occupant
                         const location = _indexToCoordinate(index)
                         return(
