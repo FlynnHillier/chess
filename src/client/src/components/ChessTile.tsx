@@ -48,7 +48,7 @@ const ChessTile = ({occupant,position,isDarkTile,setHoveredTile,focusedTileCoord
 
   return (
     <div
-      className={`chess-tile chess-tile-${isDarkTile ? "dark" : "light"} ${occupant ? "occupied" : ""}`}
+      className={`chess-tile chess-tile-${isDarkTile ? "dark" : "light"} ${occupant ? "occupied" : ""} ${overlays.movableTo ? "movableTo" : ""}`}
       onMouseEnter={onMouseEnter}  
       onMouseLeave={onMouseLeave}
       onMouseMove={onMouseMove}

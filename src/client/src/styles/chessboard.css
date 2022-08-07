@@ -16,6 +16,10 @@
     -webkit-user-drag: none;
 }
 
+.chessboard.draggingPiece > *  {
+    cursor: grabbing !important;
+}
+
 .chessboard > * {
     min-width: 0px;
 }
@@ -29,7 +33,7 @@
 }
 
 .chessboard  > .chess-tile.occupied:hover {
-    cursor: pointer;
+    
 }
 
 .chessboard > .chess-tile.chess-tile-light {
@@ -45,6 +49,10 @@
     height: 100%;
     position: absolute;
     opacity: 0.6;
+}
+
+.chess-tile.movableTo {
+    cursor:pointer;
 }
 
 .chess-piece {
