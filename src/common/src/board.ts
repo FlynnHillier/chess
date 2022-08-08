@@ -140,12 +140,12 @@ export class ChessBoard implements Board {
         targetTile.inVisionOf = []
         originTile.inVisionOf = []
 
+        piece.location = moveTo
+        piece.updateVision()
+
         for(let anotherPiece of piecesForVisionUpdate){ //updates vision of all affected tiles by the move at hand
             anotherPiece.updateVision()
         }
-
-        piece.location = moveTo
-        piece.updateVision()
 
         this.updateMoveToSafeTileOnlyPieces()
     }
@@ -189,8 +189,7 @@ export class ChessBoard implements Board {
             return false
         }
 
-        const index = this._coordinateToIndex(location)
-        return (index >= 0 && index < this.tileMap.length) //relies on all inside arrays being fixed same length, or will break.
+        return (location[0] < this.rowLength  && location[1] < Math.floor(this.tileMap.length / this.rowLength)) 
     }
 
     getTile(location: Coordinate): Tile{
