@@ -9,6 +9,10 @@ export class ChessBoard implements Board {
         white:[],
         black:[]
     }
+
+    activePieces: Piece[] = []
+
+
     tileMap: Tile[] = []
     initialised = false
     rowLength = -1
@@ -44,6 +48,7 @@ export class ChessBoard implements Board {
 
         for(let piece of pieceMap){
             if(piece !== null){
+                this.activePieces.push(piece)
                 if(piece.species === "king"){
                     if(kingPresence[piece.perspective]){
                         throw Error(`invalid game setup - only one king per perspective is allowed. ${piece.perspective} perspective has more than one.`)
@@ -71,6 +76,8 @@ export class ChessBoard implements Board {
             this._initialisePiece(piece,{isSecondInit:true})
         }
 
+        this.checkForPins()
+
         this.initialised = true
     }
 
@@ -78,6 +85,23 @@ export class ChessBoard implements Board {
 
     }
 
+
+    checkForPins(){
+        for(let piece of this.activePieces){
+            const pinnedBy = piece.getPinnedBy()
+            piece.pinnedBy = pinnedBy
+
+            if(piece.pinnedBy.length !== 0){
+                piece.isPinned = true
+                piece.update()
+            } else{
+                if(piece.isPinned === true){
+                    piece.isPinned = false
+                    piece.update()
+                }
+            }
+        }
+    }
 
     _initialisePiece(piece:Piece,{isSecondInit = false}:{isSecondInit?:boolean} = {}) : void{
         piece.location = this._getPieceLocation(piece)
@@ -122,30 +146,6 @@ export class ChessBoard implements Board {
         return array_one
     }
 
-
-    onKingMove(perspective:Perspective) : void{
-        for(let piece of this.pinnedPieces[perspective]){
-            for(let opposingPiece of piece.pinnedBy){
-                opposingPiece.pinnedPieces.splice(opposingPiece.pinnedPieces.indexOf(piece),1)
-            }
-            piece.pinnedBy = []
-            piece.isPinned = false
-            piece.update()
-        }
-        
-        this.pinnedPieces[perspective] = []
-
-        for(let piece of this.getTile(this.king[perspective]!.location).inVisionOf){
-            if(piece.perspective === perspective){
-                for(let anotherPiece of this.getTile(piece.location).inVisionOf){
-                    if(anotherPiece.perspective === piece.getOpposingPerspective()){
-                        anotherPiece.update()
-                    }
-                }
-            }
-        }
-    }
-
     onPieceMove(piece: Piece,moveTo:Coordinate): void {
         let originTile = this.getTile(piece.location) as Tile
         let targetTile = this.getTile(moveTo)
@@ -173,11 +173,9 @@ export class ChessBoard implements Board {
             anotherPiece.update()
         }
 
-        if(piece.species === "king"){
-            this.onKingMove(piece.perspective)
-        }
-
         this.updateMoveToSafeTileOnlyPieces()
+
+        this.checkForPins()
     }
 
     capturePiece(piece:Piece){
@@ -186,6 +184,8 @@ export class ChessBoard implements Board {
         for(let location of piece.inVision){
             this.getTile(location).onNoLongerInVisionOf(piece)
         }
+
+        this.activePieces.splice(this.activePieces.indexOf(piece),1)
 
         piece.onCaptured()
     }

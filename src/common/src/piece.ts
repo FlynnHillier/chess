@@ -4,8 +4,6 @@ class BlankPiece implements Piece { //
     isPinned: boolean = false
     pinnedBy: Piece[] = []
 
-    pinnedPieces: Piece[] = []
-
 
     initialised:boolean = false
     captured: boolean = false
@@ -77,29 +75,6 @@ class BlankPiece implements Piece { //
         }
     }
 
-
-    onPinnedBy(pinningPiece:Piece): void {
-        if(!this.isPinned){
-            this.isPinned = true
-            this.parentBoard.pinnedPieces[this.perspective].push(this)
-        }
-    
-        if(!this.pinnedBy.includes(pinningPiece)){
-            this.pinnedBy.push(pinningPiece)
-            this.update()
-        }
-    }
-
-    onNoLongerPinnedBy(pinningPiece:Piece) : void {
-        this.pinnedBy.splice(this.pinnedBy.indexOf(pinningPiece),1)
-        if(this.pinnedBy.length === 0){
-            this.isPinned = false
-            this.parentBoard.pinnedPieces[this.perspective].splice(this.parentBoard.pinnedPieces[this.perspective].indexOf(this),1)
-        }
-
-        this.update()
-    }
-
     onCaptured() : void {
         this.captured = true
         this.location = [-1,-1]
@@ -108,55 +83,18 @@ class BlankPiece implements Piece { //
         }
         this.inVision = []
         this.movableTo = []
-
-        for(let piece of this.pinnedPieces){
-            piece.onNoLongerPinnedBy(this)
-        }
-        this.pinnedPieces = []
+        
+        this.isPinned = false
         this.pinnedBy = []
     }
 
     update(): void { //updates this.inVision & this.movableTo , aswell as updating all affected tiles
         const oldInVision : Coordinate[] = this.inVision
-        const oldPinnedPieces : Piece[] = this.pinnedPieces
 
-        let newMovableTo : Coordinate[] = []
-        let newInVision  : Coordinate[] = []
-        let newPinnedPieces : Piece[] = []
+        const generatedVisionResult = this.generateVision()
 
-
-        for(let vector of this._pathingCharacteristics.vectors){
-            const pathing = this.walk(vector,{steps:this._pathingCharacteristics.steps})
-
-            if(pathing.obstacle !== null && pathing.obstacle.perspective === this.getOpposingPerspective()){ //if an obstacle was met & is of opposing perspective, check if it is pinned
-                if(this.checkOpposingPieceIsPinned(pathing.obstacle)){
-                    newPinnedPieces.push(pathing.obstacle)
-                }
-            }
-
-            newMovableTo = newMovableTo.concat(pathing.movableTo)
-            newInVision = newInVision.concat(pathing.inVision)
-        }
-
-        if(this.isPinned){
-            newMovableTo = []
-            if(this.pinnedBy.length === 1){ //checks if the pinned piece can potentially move to capture the piece that is pinning it
-                const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0])
-                if(isRelatingVectorResult.exists && (this._pathingCharacteristics.steps === -1 || (this._pathingCharacteristics.steps !== -1 && isRelatingVectorResult.stepsRequired <= this._pathingCharacteristics.steps))){ //if a vector exists that allows pinned piece to capture pinning piece and is within the allowed amount of steps
-                    if(this._pathingCharacteristics.isOnlyMovableToSafeTiles){
-                        if(this.parentBoard.getTile(this.pinnedBy[0].location).inVisionOf.length === 0){
-                            newMovableTo = [this.pinnedBy[0].location]
-                        }
-                    } else{
-                        newMovableTo = [this.pinnedBy[0].location]
-                    }
-                }
-            }
-        }
-
-        this.movableTo = newMovableTo
-        this.inVision = newInVision
-        this.pinnedPieces = newPinnedPieces
+        this.movableTo = generatedVisionResult.movableTo
+        this.inVision = generatedVisionResult.inVision
 
         for(let location of oldInVision){ //update tiles vision that are no longer in vision
             if(!(this.inVision.some(a=> location.every((v,i) => v === a[i])))){
@@ -167,43 +105,22 @@ class BlankPiece implements Piece { //
         for(let location of this.inVision){ //updates all tiles that are now in vision
             this.parentBoard.getTile(location).onInVisionOf(this)
         }
-
-        for(let piece of oldPinnedPieces){
-            if(!this.pinnedPieces.includes(piece)){
-                piece.onNoLongerPinnedBy(this)
-            }
-        }
-
-
-        for(let piece of this.pinnedPieces){
-            piece.onPinnedBy(this)
-        }
-
     }
 
 
-    checkOpposingPieceIsPinned(opposingPiece:Piece) : boolean{
-        let vector : Vector = [0,0]
-        let stepsTaken = 0
-        const vectorResultToPiece = this.isRelatingVector(opposingPiece)
-        if(vectorResultToPiece.exists){
-            vector = vectorResultToPiece.vector
-        } else{
-            return false
+    getPinnedBy(): Piece[]{
+        let pinnedBy: Piece[] = []
+        for(let piece of this.parentBoard.getTile(this.location).inVisionOf){
+            if(piece.perspective === this.getOpposingPerspective()){
+                const relevantVector = piece.isRelatingVector(this).vector as Vector
+                const pathing = piece.walk(relevantVector,{ignoredObstacles:[this],steps:piece._pathingCharacteristics.steps})
+                if(pathing.obstacle === this.parentBoard.king[this.perspective]){
+                    pinnedBy.push(piece)
+                }
+            }
         }
 
-        stepsTaken += vectorResultToPiece.stepsRequired
-
-        if(!(this._pathingCharacteristics.steps === -1) && stepsTaken >= this._pathingCharacteristics.steps) {
-            return false
-        }
-        const pathResult = this.walk(vector,{startLocation:opposingPiece.location,steps:this._pathingCharacteristics.steps === -1 ? -1 : this._pathingCharacteristics.steps - stepsTaken})
-
-        if(pathResult.obstacle === this.parentBoard.king[this.getOpposingPerspective()]){
-            return true
-        }
-
-        return false
+        return pinnedBy
     }
 
 
@@ -230,45 +147,37 @@ class BlankPiece implements Piece { //
     }
 
 
+    generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]} {
+        let newMovableTo : Coordinate[] = []
+        let newInVision  : Coordinate[] = []
 
-    // generateVision({doCauseUpdates = false} : {doCauseUpdates?:boolean} = {}) : {inVision:Coordinate[],movableTo:Coordinate[]}{ //generates all tiles in Vision, and all tiles in Vision that are also movable To (non-friendly pieces [ & safe squares if only move to safe squares])
-    //     let bundledMovableTo : Coordinate[] = []
-    //     let bundledInVision : Coordinate[] = []
-    //     for(let vector of this._pathingCharacteristics.vectors){
-    //         const visionSet = this.walk(vector,{steps:this._pathingCharacteristics.steps})
+        for(let vector of this._pathingCharacteristics.vectors){
+            const pathing = this.walk(vector,{steps:this._pathingCharacteristics.steps})
+            newMovableTo = newMovableTo.concat(pathing.movableTo)
+            newInVision = newInVision.concat(pathing.inVision)
+        }
 
-    //         if(doCauseUpdates){
-    //             if(visionSet.obstacle !== null && visionSet.obstacle.perspective === this.getOpposingPerspective()){ //if an obstacle was met & is of opposing perspective, check if it is pinned
-    //                 if(this.checkOpposingPieceIsPinned(visionSet.obstacle)){
-    //                     this.onPin(visionSet.obstacle)
-    //                 }
-    //             }
-    //         }
-
-    //         bundledMovableTo = bundledMovableTo.concat(visionSet.movableTo)
-    //         bundledInVision = bundledInVision.concat(visionSet.inVision)
-    //     }
-
-    //     if(this.isPinned){
-    //         if(this.pinnedBy.length === 1){ //checks if the pinned piece can move to capture the piece that is pinning it
-    //             const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0])
-    //             if(isRelatingVectorResult.exists){
-    //                 bundledMovableTo = [this.pinnedBy[0].location]
-    //             } else{
-    //                 bundledMovableTo = []
-    //             }
-    //         } else{
-    //             bundledMovableTo = []
-    //         }
-    //     }
-
-
-
-    //     return {
-    //         inVision:bundledInVision,
-    //         movableTo:bundledMovableTo
-    //     }
-    // }
+        if(this.isPinned){
+            newMovableTo = []
+            if(this.pinnedBy.length === 1){ //checks if the pinned piece can potentially move to capture the piece that is pinning it
+                const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0])
+                if(isRelatingVectorResult.exists && (this._pathingCharacteristics.steps === -1 || (this._pathingCharacteristics.steps !== -1 && isRelatingVectorResult.stepsRequired <= this._pathingCharacteristics.steps))){ //if a vector exists that allows pinned piece to capture pinning piece and is within the allowed amount of steps
+                    if(this._pathingCharacteristics.isOnlyMovableToSafeTiles){
+                        if(this.parentBoard.getTile(this.pinnedBy[0].location).inVisionOf.length === 0){
+                            newMovableTo = [this.pinnedBy[0].location]
+                        }
+                    } else{
+                        newMovableTo = [this.pinnedBy[0].location]
+                    }
+                }
+            }
+        }
+        
+        return {
+            inVision:newInVision,
+            movableTo:newMovableTo
+        }
+    }
 
     getOpposingPerspective() : Perspective{
         return this.perspective === "white" ? "black" : "white"
