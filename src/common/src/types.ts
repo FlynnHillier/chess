@@ -24,7 +24,7 @@ export interface Piece {
     getOpposingPerspective() : Perspective
     onCaptured() : void
     move(destination:Coordinate):void
-    walk(vector:Vector,{} : {steps?: number, startLocation?: Coordinate, ignoredObstacles: Piece[]}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }
+    walk(vector:Vector,{steps,startLocation,ignoredObstacles}? : {steps?: number, startLocation?: Coordinate, ignoredObstacles?: Piece[]}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }
     update():void
 }
 
