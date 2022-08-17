@@ -18,11 +18,9 @@ export interface Piece {
     species: Species
     pinnedBy: Piece[]
     isPinned:boolean
-    pinnedPieces:Piece[]
-    onPinnedBy(pinningPiece:Piece):void
-    onNoLongerPinnedBy(pinningPiece:Piece) : void
+
+    getPinnedBy() : Piece[]
     isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}
-    checkOpposingPieceIsPinned(opposingPiece:Piece,{} : {vector? : Vector}) : boolean
     getOpposingPerspective() : Perspective
     onCaptured() : void
     move(destination:Coordinate):void
@@ -58,7 +56,7 @@ export interface Board {
 
     tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective):boolean
     onPieceMove(piece:Piece,moveTo:Coordinate):void
-    onKingMove(perspective:Perspective) : void
+    // onKingMove(perspective:Perspective) : void
     getTile(location:Coordinate):Tile
     tileDoesExist(location:Coordinate) : boolean
     _ConcatUnique(array_one:Array<any>,array_two:Array<any>):Array<any>
