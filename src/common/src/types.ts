@@ -16,10 +16,18 @@ export interface Piece {
     location:[number,number]
     movableTo:Coordinate[]
     species: Species
+    pinnedBy: Piece[]
+    isPinned:boolean
+    pinnedPieces:Piece[]
+    onPinnedBy(pinningPiece:Piece):void
+    onNoLongerPinnedBy(pinningPiece:Piece) : void
+    isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}
+    checkOpposingPieceIsPinned(opposingPiece:Piece,{} : {vector? : Vector}) : boolean
+    getOpposingPerspective() : Perspective
+    onCaptured() : void
     move(destination:Coordinate):void
-    _walk(vector:Vector,{}:{steps:number}) : {inVision:Coordinate[],movableTo:Coordinate[]}
-    updateVision():void
-    generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]}
+    walk(vector:Vector,{} : {steps?: number, startLocation?: Coordinate, ignoredObstacles: Piece[]}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }
+    update():void
 }
 
 export interface Tile {
@@ -43,8 +51,14 @@ export interface Board {
         black:Piece | null
     }
 
+    pinnedPieces:{
+        white:Piece[]
+        black:Piece[]
+    }
+
     tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective):boolean
     onPieceMove(piece:Piece,moveTo:Coordinate):void
+    onKingMove(perspective:Perspective) : void
     getTile(location:Coordinate):Tile
     tileDoesExist(location:Coordinate) : boolean
     _ConcatUnique(array_one:Array<any>,array_two:Array<any>):Array<any>

@@ -19,9 +19,10 @@ export class ChessBoard implements Board {
     }
     forVisionUpdateOnEveryMove : Piece[] = [] 
 
-
-
-
+    pinnedPieces: { white: Piece[] , black: Piece [] } = {
+        white:[],
+        black:[]
+    }
 
     constructor(public perspective:Perspective){}
 
@@ -77,9 +78,10 @@ export class ChessBoard implements Board {
 
     }
 
+
     _initialisePiece(piece:Piece,{isSecondInit = false}:{isSecondInit?:boolean} = {}) : void{
         piece.location = this._getPieceLocation(piece)
-        piece.updateVision()
+        piece.update()
         if(!(piece._pathingCharacteristics.isOnlyMovableToSafeTiles === true && isSecondInit === false)){
             piece.initialised = true
         }
@@ -120,6 +122,30 @@ export class ChessBoard implements Board {
         return array_one
     }
 
+
+    onKingMove(perspective:Perspective) : void{
+        for(let piece of this.pinnedPieces[perspective]){
+            for(let opposingPiece of piece.pinnedBy){
+                opposingPiece.pinnedPieces.splice(opposingPiece.pinnedPieces.indexOf(piece),1)
+            }
+            piece.pinnedBy = []
+            piece.isPinned = false
+            piece.update()
+        }
+        
+        this.pinnedPieces[perspective] = []
+
+        for(let piece of this.getTile(this.king[perspective]!.location).inVisionOf){
+            if(piece.perspective === perspective){
+                for(let anotherPiece of this.getTile(piece.location).inVisionOf){
+                    if(anotherPiece.perspective === piece.getOpposingPerspective()){
+                        anotherPiece.update()
+                    }
+                }
+            }
+        }
+    }
+
     onPieceMove(piece: Piece,moveTo:Coordinate): void {
         let originTile = this.getTile(piece.location) as Tile
         let targetTile = this.getTile(moveTo)
@@ -135,16 +161,20 @@ export class ChessBoard implements Board {
 
         targetTile.occupant = piece //move to destination tile
 
-        const piecesForVisionUpdate : Piece[] =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
+        const piecesForUpdate : Piece[] =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
 
         targetTile.inVisionOf = []
         originTile.inVisionOf = []
 
         piece.location = moveTo
-        piece.updateVision()
+        piece.update()
 
-        for(let anotherPiece of piecesForVisionUpdate){ //updates vision of all affected tiles by the move at hand
-            anotherPiece.updateVision()
+        for(let anotherPiece of piecesForUpdate){ //updates vision of all affected tiles by the move at hand
+            anotherPiece.update()
+        }
+
+        if(piece.species === "king"){
+            this.onKingMove(piece.perspective)
         }
 
         this.updateMoveToSafeTileOnlyPieces()
@@ -152,24 +182,22 @@ export class ChessBoard implements Board {
 
     capturePiece(piece:Piece){
         this.getTile(piece.location).occupant === null
-        piece.captured = true
-        piece.location = [-1,-1]
         this.captured[piece.perspective === "white" ? "black" : "white"].push(piece)
         for(let location of piece.inVision){
             this.getTile(location).onNoLongerInVisionOf(piece)
         }
-        piece.inVision = []
-        piece.movableTo = []
+
+        piece.onCaptured()
     }
 
 
     updateMoveToSafeTileOnlyPieces() : void{
         for (let piece of this.forVisionUpdateOnEveryMove){
-            piece.updateVision()
+            piece.update()
         }
 
         for (let piece of this.forVisionUpdateOnEveryMove){
-            piece.updateVision()
+            piece.update()
         }
     }
 
