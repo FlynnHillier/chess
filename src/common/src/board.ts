@@ -193,11 +193,15 @@ export class ChessBoard implements Board {
 
     updateMoveToSafeTileOnlyPieces() : void{
         for (let piece of this.forVisionUpdateOnEveryMove){
-            piece.update()
+            if(!piece.captured){
+                piece.update()
+            }
         }
 
         for (let piece of this.forVisionUpdateOnEveryMove){
-            piece.update()
+            if(!piece.captured){
+                piece.update()
+            }
         }
     }
 
