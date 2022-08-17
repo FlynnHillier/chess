@@ -182,17 +182,22 @@ class BlankPiece implements Piece { //
     }
 
 
-    checkOpposingPieceIsPinned(opposingPiece:Piece,{vector = undefined} : {vector? : Vector} = {}) : boolean{
-        if(vector === undefined){
-            const isRelatingVector = this.isRelatingVector(opposingPiece)
-            if(isRelatingVector.exists){
-                vector = isRelatingVector.vector
-            } else{
-                return false
-            }
+    checkOpposingPieceIsPinned(opposingPiece:Piece) : boolean{
+        let vector : Vector = [0,0]
+        let stepsTaken = 0
+        const vectorResultToPiece = this.isRelatingVector(opposingPiece)
+        if(vectorResultToPiece.exists){
+            vector = vectorResultToPiece.vector
+        } else{
+            return false
         }
 
-        const pathResult = this.walk(vector,{startLocation:opposingPiece.location})
+        stepsTaken += vectorResultToPiece.stepsRequired
+
+        if(!(this._pathingCharacteristics.steps === -1) && stepsTaken >= this._pathingCharacteristics.steps) {
+            return false
+        }
+        const pathResult = this.walk(vector,{startLocation:opposingPiece.location,steps:this._pathingCharacteristics.steps === -1 ? -1 : this._pathingCharacteristics.steps - stepsTaken})
 
         if(pathResult.obstacle === this.parentBoard.king[this.getOpposingPerspective()]){
             return true
@@ -204,7 +209,7 @@ class BlankPiece implements Piece { //
 
     isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}{
         const locationDifference : Vector = [piece.location[0] - this.location[0],piece.location[1] - this.location[1]]
-        
+
         for(let vector of this._pathingCharacteristics.vectors){
             if(((locationDifference[0] >= 0 && vector[0] >= 0) || (locationDifference[0] < 0 && vector[0] < 0))  && ((locationDifference[1] >= 0 && vector[1] >= 0) || (locationDifference[1] < 0 && vector[1] < 0))){ //if vector is postive / negative aswell as location Difference translation
                 if(locationDifference[0] % vector[0] === 0 && locationDifference[1] % vector[1] === 0){
