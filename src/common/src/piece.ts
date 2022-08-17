@@ -172,6 +172,26 @@ class BlankPiece implements Piece { //
                 }
             }
         }
+
+
+        if(this._pathingCharacteristics.isOnlyMovableToSafeTiles){ //removes all tiles from movable to that will be unsafe on next move also, after it has moved.         
+            let unsafeTilesForNextMove : Coordinate[] = []
+            
+            for(let threat of this.parentBoard.getTile(this.location).inVisionOf){
+                const relativeVectorResult = threat.isRelatingVector(this)
+                unsafeTilesForNextMove = unsafeTilesForNextMove.concat(threat.walk(relativeVectorResult.vector).inVision)
+            }
+
+            let validMovableTo : Coordinate[] = []
+
+            for(let location of newMovableTo){
+                if(!unsafeTilesForNextMove.some(movableTo=> location.every((val,indx) => val === movableTo[indx]))){
+                    validMovableTo.push(location)
+                }
+            }
+
+            newMovableTo = validMovableTo
+        }
         
         return {
             inVision:newInVision,
