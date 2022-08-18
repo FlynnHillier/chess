@@ -211,8 +211,6 @@ export class ChessBoard implements Board {
         this.checkInfo[perspective] = {...this.checkInfo[perspective],status:"none",threateningPieces:[]}
         
         for(let friendlyPiece of this.activePieces.filter(piece => piece.perspective === this.currentTurn)){
-            console.log(friendlyPiece)
-            
             friendlyPiece.update()
         }
     }

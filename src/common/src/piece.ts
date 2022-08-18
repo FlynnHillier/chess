@@ -90,9 +90,6 @@ class BlankPiece implements Piece { //
 
                 const blockCheckLocations : Coordinate[] = [...this.parentBoard.checkInfo[this.perspective].threateningPieces[0].alongPath,(this.parentBoard.checkInfo[this.perspective].threateningPieces[0].piece.location)]
 
-                console.log("bcl:")
-                console.log(blockCheckLocations)
-
                 for(let location of newMovableTo){
                     if(blockCheckLocations.some(blockCheckLocation=> location.every((val,indx) => val === blockCheckLocation[indx]))){ //if location is included within the threatPath
                         overwriteNewMovableTo.push(location) 
