@@ -161,14 +161,8 @@ class BlankPiece implements Piece { //
             newMovableTo = []
             if(this.pinnedBy.length === 1){ //checks if the pinned piece can potentially move to capture the piece that is pinning it
                 const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0])
-                if(isRelatingVectorResult.exists && (this._pathingCharacteristics.steps === -1 || (this._pathingCharacteristics.steps !== -1 && isRelatingVectorResult.stepsRequired <= this._pathingCharacteristics.steps))){ //if a vector exists that allows pinned piece to capture pinning piece and is within the allowed amount of steps
-                    if(this._pathingCharacteristics.isOnlyMovableToSafeTiles){
-                        if(this.parentBoard.getTile(this.pinnedBy[0].location).inVisionOf.length === 0){
-                            newMovableTo = [this.pinnedBy[0].location]
-                        }
-                    } else{
-                        newMovableTo = [this.pinnedBy[0].location]
-                    }
+                if(isRelatingVectorResult.exists){
+                    newMovableTo = this.walk(isRelatingVectorResult.vector,{steps:this._pathingCharacteristics.steps}).movableTo
                 }
             }
         }
