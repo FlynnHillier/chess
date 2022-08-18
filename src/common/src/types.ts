@@ -53,7 +53,7 @@ export interface Board {
 
     currentTurn: Perspective
 
-    forVisionUpdateOnEveryMove : Piece[] = []
+    forVisionUpdateOnEveryMove : Piece[]
 
     checkInfo : { 
         white: { status: "none" | "check" | "checkmate"; threateningPieces: { piece: Piece; alongPath: Coordinate[]; }[]; }
