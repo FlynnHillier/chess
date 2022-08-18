@@ -172,6 +172,9 @@ class BlankPiece implements Piece { //
             let unsafeTilesForNextMove : Coordinate[] = []
             
             for(let threat of this.parentBoard.getTile(this.location).inVisionOf){
+                if(threat.perspective !== this.getOpposingPerspective()){
+                    continue
+                }
                 const relativeVectorResult = threat.isRelatingVector(this)
                 unsafeTilesForNextMove = unsafeTilesForNextMove.concat(threat.walk(relativeVectorResult.vector).inVision)
             }
