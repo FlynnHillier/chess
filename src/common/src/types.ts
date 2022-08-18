@@ -7,25 +7,34 @@ export type Species = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king" |
 export type Coordinate = [insideIndex: number,outsideIndex: number]
 
 export interface Piece {
-    inVision: Coordinate[]
-    _pathingCharacteristics: { steps:number,vectors:Vector[],isOnlyMovableToSafeTiles:boolean }
-    initialised:boolean
+    initialised: boolean
     parentBoard:Board
     perspective:Perspective
+    species: Species
+    _pathingCharacteristics: { steps:number,vectors:Vector[],isOnlyMovableToSafeTiles:boolean }
+    
+    inVision: Coordinate[]
+    movableTo:Coordinate[]
+
+    isPinned:boolean
+    pinnedBy: Piece[]
+
     captured:boolean
     location:[number,number]
-    movableTo:Coordinate[]
-    species: Species
-    pinnedBy: Piece[]
-    isPinned:boolean
 
-    getPinnedBy() : Piece[]
-    isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}
-    getOpposingPerspective() : Perspective
-    onCaptured() : void
+    update(): void
+    generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]}
+    
     move(destination:Coordinate):void
     walk(vector:Vector,{steps,startLocation,ignoredObstacles}? : {steps?: number, startLocation?: Coordinate, ignoredObstacles?: Piece[]}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }
-    update():void
+
+    onCaptured() : void
+
+    getPinnedBy() : Piece[]
+
+    isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}
+
+    getOpposingPerspective() : Perspective
 }
 
 export interface Tile {
@@ -37,30 +46,53 @@ export interface Tile {
 
 export interface Board {
     initialised:boolean
+
+    perspective:Perspective,
     tileMap:Tile[],
     rowLength:number,
+
+    currentTurn: Perspective
+
+    forVisionUpdateOnEveryMove : Piece[] = []
+
+    checkInfo : { 
+        white: { status: "none" | "check" | "checkmate"; threateningPieces: { piece: Piece; alongPath: Coordinate[]; }[]; }
+        black:{ status: "none" | "check" | "checkmate"; threateningPieces: { piece: Piece; alongPath: Coordinate[]; }[]; }
+    }
     captured: {
         white: Piece[],
         black: Piece[]
     }
-    perspective:Perspective,
     king: {
         white:Piece | null,
         black:Piece | null
     }
 
-    pinnedPieces:{
-        white:Piece[]
-        black:Piece[]
-    }
+
+    init({tileMap,tilesPerRow}:{tileMap?:(Piece | null)[],tilesPerRow?:number}):void
+    onPieceMove(piece:Piece,moveTo:Coordinate):void
+
+    updateMoveToSafeTileOnlyPieces() : void
+    checkForPins() : void
+
+    capturePiece(piece:Piece) : void
+
+    isCheck(perspective:Perspective) : boolean
+    isCheckMateOnCheck(perspective:Perspective) : boolean
+    onNoLongerCheck(perspective:Perspective) : void
+    onCheck(perspective:Perspective) : void
+    onCheckMate(perspective:Perspective) : void
+
+    changeTurn() : void
+    onTurnChange() : void
 
     tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective):boolean
-    onPieceMove(piece:Piece,moveTo:Coordinate):void
-    // onKingMove(perspective:Perspective) : void
-    getTile(location:Coordinate):Tile
     tileDoesExist(location:Coordinate) : boolean
-    _ConcatUnique(array_one:Array<any>,array_two:Array<any>):Array<any>
-    init({tileMap,tilesPerRow}:{tileMap?:(Piece | null)[],tilesPerRow?:number}):void
+    getTile(location:Coordinate):Tile
+
     _initialisePiece(piece:Piece) : void
-    _getPieceLocation(piece:Piece) : [number,number]
+    _generatePieceLocation(piece:Piece) : [number,number]
+    _indexToCoordinate(index:number) : Coordinate
+    _coordinateToIndex(coordinate:Coordinate) : number
+    _ConcatUnique(array_one:Array<any>,array_two:Array<any>):Array<any>
 }

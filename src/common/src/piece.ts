@@ -1,11 +1,11 @@
 import { Coordinate,Piece,Board,Species,Perspective,Vector} from "./types";
 
 class BlankPiece implements Piece { //
+    initialised:boolean = false
+
+
     isPinned: boolean = false
     pinnedBy: Piece[] = []
-
-
-    initialised:boolean = false
     captured: boolean = false
     species : Species = "generic"
     movableTo: Coordinate[] = []
@@ -18,6 +18,95 @@ class BlankPiece implements Piece { //
     }
 
     constructor(public parentBoard:Board,public perspective:Perspective){}
+
+    update(): void { //updates this.inVision & this.movableTo , aswell as updating all affected tiles
+        const oldInVision : Coordinate[] = this.inVision
+
+        const generatedVisionResult = this.generateVision()
+
+        this.movableTo = generatedVisionResult.movableTo
+        this.inVision = generatedVisionResult.inVision
+
+        for(let location of oldInVision){ //update tiles vision that are no longer in vision
+            if(!(this.inVision.some(a=> location.every((v,i) => v === a[i])))){
+                this.parentBoard.getTile(location).onNoLongerInVisionOf(this)
+            }
+        }
+
+        for(let location of this.inVision){ //updates all tiles that are now in vision
+            this.parentBoard.getTile(location).onInVisionOf(this)
+        }
+    }
+
+    generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]} {
+        let newMovableTo : Coordinate[] = []
+        let newInVision  : Coordinate[] = []
+
+        for(let vector of this._pathingCharacteristics.vectors){
+            const pathing = this.walk(vector,{steps:this._pathingCharacteristics.steps})
+            newMovableTo = newMovableTo.concat(pathing.movableTo)
+            newInVision = newInVision.concat(pathing.inVision)
+        }
+
+
+
+
+        if(this.isPinned){
+            newMovableTo = []
+            if(this.pinnedBy.length === 1){ //checks if the pinned piece can potentially move to capture the piece that is pinning it
+                const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0])
+                if(isRelatingVectorResult.exists){
+                    newMovableTo = this.walk(isRelatingVectorResult.vector,{steps:this._pathingCharacteristics.steps}).movableTo
+                }
+            }
+        }
+
+
+        if(this._pathingCharacteristics.isOnlyMovableToSafeTiles){ //removes all tiles from movable to that will be unsafe on next move also, after it has moved.         
+            let unsafeTilesForNextMove : Coordinate[] = []
+            
+            for(let threat of this.parentBoard.getTile(this.location).inVisionOf){
+                if(threat.perspective !== this.getOpposingPerspective()){
+                    continue
+                }
+                const relativeVectorResult = threat.isRelatingVector(this)
+                unsafeTilesForNextMove = unsafeTilesForNextMove.concat(threat.walk(relativeVectorResult.vector).inVision)
+            }
+
+            let validMovableTo : Coordinate[] = []
+
+            for(let location of newMovableTo){
+                if(!unsafeTilesForNextMove.some(movableTo=> location.every((val,indx) => val === movableTo[indx]))){
+                    validMovableTo.push(location)
+                }
+            }
+
+            newMovableTo = validMovableTo
+        }
+
+        if(this.parentBoard.checkInfo[this.perspective].status === "check" && this.species !== "king"){
+            let overwriteNewMovableTo = []
+            if(this.parentBoard.checkInfo[this.perspective].threateningPieces.length === 1){ //if there is only one piece that need to be blocked
+
+                const blockCheckLocations : Coordinate[] = [...this.parentBoard.checkInfo[this.perspective].threateningPieces[0].alongPath,(this.parentBoard.checkInfo[this.perspective].threateningPieces[0].piece.location)]
+
+                console.log("bcl:")
+                console.log(blockCheckLocations)
+
+                for(let location of newMovableTo){
+                    if(blockCheckLocations.some(blockCheckLocation=> location.every((val,indx) => val === blockCheckLocation[indx]))){ //if location is included within the threatPath
+                        overwriteNewMovableTo.push(location) 
+                    }
+                }
+            }
+            newMovableTo = overwriteNewMovableTo //now contains only locations that blocks check threat
+        }
+
+        return {
+            inVision:newInVision,
+            movableTo:newMovableTo
+        }
+    }
 
     move(destination: Coordinate): void { //moves piece
         if(!this.movableTo.some(movableTo=> destination.every((val,indx) => val === movableTo[indx]))){
@@ -88,25 +177,6 @@ class BlankPiece implements Piece { //
         this.pinnedBy = []
     }
 
-    update(): void { //updates this.inVision & this.movableTo , aswell as updating all affected tiles
-        const oldInVision : Coordinate[] = this.inVision
-
-        const generatedVisionResult = this.generateVision()
-
-        this.movableTo = generatedVisionResult.movableTo
-        this.inVision = generatedVisionResult.inVision
-
-        for(let location of oldInVision){ //update tiles vision that are no longer in vision
-            if(!(this.inVision.some(a=> location.every((v,i) => v === a[i])))){
-                this.parentBoard.getTile(location).onNoLongerInVisionOf(this)
-            }
-        }
-
-        for(let location of this.inVision){ //updates all tiles that are now in vision
-            this.parentBoard.getTile(location).onInVisionOf(this)
-        }
-    }
-
 
     getPinnedBy(): Piece[]{
         let pinnedBy: Piece[] = []
@@ -143,56 +213,6 @@ class BlankPiece implements Piece { //
             exists:false,
             vector:[0,0],
             stepsRequired:-1
-        }
-    }
-
-
-    generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]} {
-        let newMovableTo : Coordinate[] = []
-        let newInVision  : Coordinate[] = []
-
-        for(let vector of this._pathingCharacteristics.vectors){
-            const pathing = this.walk(vector,{steps:this._pathingCharacteristics.steps})
-            newMovableTo = newMovableTo.concat(pathing.movableTo)
-            newInVision = newInVision.concat(pathing.inVision)
-        }
-
-        if(this.isPinned){
-            newMovableTo = []
-            if(this.pinnedBy.length === 1){ //checks if the pinned piece can potentially move to capture the piece that is pinning it
-                const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0])
-                if(isRelatingVectorResult.exists){
-                    newMovableTo = this.walk(isRelatingVectorResult.vector,{steps:this._pathingCharacteristics.steps}).movableTo
-                }
-            }
-        }
-
-
-        if(this._pathingCharacteristics.isOnlyMovableToSafeTiles){ //removes all tiles from movable to that will be unsafe on next move also, after it has moved.         
-            let unsafeTilesForNextMove : Coordinate[] = []
-            
-            for(let threat of this.parentBoard.getTile(this.location).inVisionOf){
-                if(threat.perspective !== this.getOpposingPerspective()){
-                    continue
-                }
-                const relativeVectorResult = threat.isRelatingVector(this)
-                unsafeTilesForNextMove = unsafeTilesForNextMove.concat(threat.walk(relativeVectorResult.vector).inVision)
-            }
-
-            let validMovableTo : Coordinate[] = []
-
-            for(let location of newMovableTo){
-                if(!unsafeTilesForNextMove.some(movableTo=> location.every((val,indx) => val === movableTo[indx]))){
-                    validMovableTo.push(location)
-                }
-            }
-
-            newMovableTo = validMovableTo
-        }
-        
-        return {
-            inVision:newInVision,
-            movableTo:newMovableTo
         }
     }
 

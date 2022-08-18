@@ -5,28 +5,38 @@ import Bishop from "./bishop";
 import Rook from "./rook";
 
 export class ChessBoard implements Board {
+    initialised = false
+    tileMap: Tile[] = []
+    rowLength = -1
+    activePieces: Piece[] = []
+
+    currentTurn : Perspective = "white"
+
+    forVisionUpdateOnEveryMove : Piece[] = []
+
+    checkInfo : { 
+        white: { status: "none" | "check" | "checkmate"; threateningPieces: { piece: Piece; alongPath: Coordinate[]; }[]; }
+        black:{ status: "none" | "check" | "checkmate"; threateningPieces: { piece: Piece; alongPath: Coordinate[]; }[]; }
+    } = {
+        white: { 
+            status: "none", 
+            threateningPieces: [] 
+        },
+        black: { 
+            status: "none", 
+            threateningPieces: [] 
+        }
+    }
+    king : {white:Piece| null, black:Piece | null} = {
+        white:null,
+        black:null
+    }
     captured: { white: Piece[]; black: Piece[] } = {
         white:[],
         black:[]
     }
 
-    activePieces: Piece[] = []
 
-
-    tileMap: Tile[] = []
-    initialised = false
-    rowLength = -1
-    checkMated=false
-    king : {white:Piece| null, black:Piece | null} = {
-        white:null,
-        black:null
-    }
-    forVisionUpdateOnEveryMove : Piece[] = [] 
-
-    pinnedPieces: { white: Piece[] , black: Piece [] } = {
-        white:[],
-        black:[]
-    }
 
     constructor(public perspective:Perspective){}
 
@@ -78,78 +88,16 @@ export class ChessBoard implements Board {
 
         this.checkForPins()
 
+        if(this.isCheck("white") || this.isCheck("black")){
+            throw Error("either side cannot begin in check")
+        }
+
         this.initialised = true
-    }
-
-    isCheck(){
-
-    }
-
-
-    checkForPins(){
-        for(let piece of this.activePieces){
-            const pinnedBy = piece.getPinnedBy()
-            piece.pinnedBy = pinnedBy
-
-            if(piece.pinnedBy.length !== 0){
-                piece.isPinned = true
-                piece.update()
-            } else{
-                if(piece.isPinned === true){
-                    piece.isPinned = false
-                    piece.update()
-                }
-            }
-        }
-    }
-
-    _initialisePiece(piece:Piece,{isSecondInit = false}:{isSecondInit?:boolean} = {}) : void{
-        piece.location = this._getPieceLocation(piece)
-        piece.update()
-        if(!(piece._pathingCharacteristics.isOnlyMovableToSafeTiles === true && isSecondInit === false)){
-            piece.initialised = true
-        }
-    }
-
-
-    _getPieceLocation(piece:Piece) : [number,number]{
-        const matchingTile = this.tileMap.find((tile)=>piece === tile.occupant)
-
-        if(!matchingTile){
-            throw {
-                message:"on _getPieceLocation() could not locate piece within tileMap",
-                piece:piece
-            }
-        }
-
-        const tileIndex = this.tileMap.indexOf(matchingTile)
-
-        return this._indexToCoordinate(tileIndex)
-    }
-
-
-    _ConcatUnique(array_one:Array<any>, array_two:Array<any>,exclude? : Array<any>){
-        
-        for(let elem of array_one){
-            if(exclude?.includes(elem)){
-                array_one.splice(array_one.indexOf(elem),1)
-            }
-        }
-        for(let elem of array_two){
-            if(exclude?.includes(elem)){
-                continue
-            }
-            if(!array_one.includes(elem)){
-                array_one.push(elem)
-            }
-        }
-        return array_one
     }
 
     onPieceMove(piece: Piece,moveTo:Coordinate): void {
         let originTile = this.getTile(piece.location) as Tile
         let targetTile = this.getTile(moveTo)
-
         let excludeFromUpdate : Piece[] = [piece]
 
         originTile.occupant = null
@@ -160,6 +108,12 @@ export class ChessBoard implements Board {
         }
 
         targetTile.occupant = piece //move to destination tile
+
+
+
+        if(this.checkInfo[this.currentTurn].status === "check"){
+            this.onNoLongerCheck(this.currentTurn)
+        }
 
         const piecesForUpdate : Piece[] =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
 
@@ -176,20 +130,9 @@ export class ChessBoard implements Board {
         this.updateMoveToSafeTileOnlyPieces()
 
         this.checkForPins()
+
+        this.changeTurn()
     }
-
-    capturePiece(piece:Piece){
-        this.getTile(piece.location).occupant === null
-        this.captured[piece.perspective === "white" ? "black" : "white"].push(piece)
-        for(let location of piece.inVision){
-            this.getTile(location).onNoLongerInVisionOf(piece)
-        }
-
-        this.activePieces.splice(this.activePieces.indexOf(piece),1)
-
-        piece.onCaptured()
-    }
-
 
     updateMoveToSafeTileOnlyPieces() : void{
         for (let piece of this.forVisionUpdateOnEveryMove){
@@ -205,7 +148,118 @@ export class ChessBoard implements Board {
         }
     }
 
+    checkForPins() : void {
+        for(let piece of this.activePieces){
+            const pinnedBy = piece.getPinnedBy()
+            piece.pinnedBy = pinnedBy
 
+            if(piece.pinnedBy.length !== 0){
+                piece.isPinned = true
+                piece.update()
+            } else{
+                if(piece.isPinned === true){
+                    piece.isPinned = false
+                    piece.update()
+                }
+            }
+        }
+    }
+
+    capturePiece(piece:Piece) : void {
+        this.getTile(piece.location).occupant === null
+        this.captured[piece.perspective === "white" ? "black" : "white"].push(piece)
+        for(let location of piece.inVision){
+            this.getTile(location).onNoLongerInVisionOf(piece)
+        }
+
+        this.activePieces.splice(this.activePieces.indexOf(piece),1)
+
+        piece.onCaptured()
+    }
+
+    isCheck(perspective:Perspective) : boolean{
+        const threateningPieces : Piece[] = this.getTile(this.king[perspective]!.location).inVisionOf.filter(piece => piece.perspective !== perspective)
+        return threateningPieces.length !== 0
+    }
+
+    isCheckMateOnCheck(perspective:Perspective) : boolean{
+        const relevantKing : Piece = this.king[perspective] as Piece
+        const threateningPieces : Piece[] = this.getTile(this.king[perspective]!.location).inVisionOf.filter(piece => piece.perspective !== perspective)
+
+        if(relevantKing.movableTo.length !== 0) {
+            return false
+        }
+
+        if(threateningPieces.length === 1){ //friendly pieces may be able to move to block said piece
+            const threateningVector = threateningPieces[0].isRelatingVector(relevantKing).vector
+            for(let location of threateningPieces[0].walk(threateningVector,{steps:threateningPieces[0]._pathingCharacteristics.steps}).inVision){ //for location in threatening path of piece that threatens king (check for friendly pieces that can move to block its path)
+                for(let friendlyPiece of this.getTile(location).inVisionOf.filter(piece => piece.perspective === perspective)){ //for friendly piece that can see see the tile in question
+                    if(friendlyPiece.movableTo.some(movableTo=> location.every((val,indx) => val === movableTo[indx]))){ //if friendly piece is allowed to move to this tile
+                        return false
+                    }
+                }
+            }
+        }
+        
+        return true
+    }
+
+    onNoLongerCheck(perspective:Perspective) : void {
+
+        console.log(`${perspective} is no longer in check`)
+
+        this.checkInfo[perspective] = {...this.checkInfo[perspective],status:"none",threateningPieces:[]}
+        
+        for(let friendlyPiece of this.activePieces.filter(piece => piece.perspective === this.currentTurn)){
+            console.log(friendlyPiece)
+            
+            friendlyPiece.update()
+        }
+    }
+
+    onCheck(perspective:Perspective) : void{
+        console.log(`${perspective} is in check`)
+
+        if(this.isCheckMateOnCheck(perspective)){
+            this.onCheckMate(perspective)
+            return
+        }
+
+
+        this.checkInfo[perspective] = {...this.checkInfo[perspective],status:"check",threateningPieces:[]}
+
+        const threateningPieces : Piece[] = this.getTile(this.king[perspective]!.location).inVisionOf.filter(piece => piece.perspective !== perspective) //all pieces that threaten the king
+        for(let threat of threateningPieces){
+            const relevantThreatVector = threat.isRelatingVector(this.king[perspective]!).vector
+            const threatPath = threat.walk(relevantThreatVector,{steps:threat._pathingCharacteristics.steps}).inVision
+            this.checkInfo[perspective].threateningPieces.push({
+                piece:threat,
+                alongPath:threatPath
+            })
+        }
+
+        for(let friendlyPiece of this.activePieces.filter(piece => piece.perspective === perspective)){
+            friendlyPiece.update()
+        }
+    }
+
+    onCheckMate(perspective:Perspective) : void{
+        console.log(`${perspective} has been checkmated!`)
+    }
+
+    changeTurn() : void {
+        this.currentTurn = this.currentTurn === "white" ? "black" : "white"
+        this.onTurnChange()
+    }
+
+    onTurnChange() : void {
+        console.log(this.currentTurn)
+
+        if(this.isCheck(this.currentTurn)){
+            this.onCheck(this.currentTurn)
+        }
+
+    }
 
     tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective) : boolean{
         for(let piece of tile.inVisionOf){
@@ -228,6 +282,30 @@ export class ChessBoard implements Board {
         return this.tileMap[this._coordinateToIndex(location)]
     }
 
+
+    _initialisePiece(piece:Piece,{isSecondInit = false}:{isSecondInit?:boolean} = {}) : void{
+        piece.location = this._generatePieceLocation(piece)
+        piece.update()
+        if(!(piece._pathingCharacteristics.isOnlyMovableToSafeTiles === true && isSecondInit === false)){
+            piece.initialised = true
+        }
+    }
+
+    _generatePieceLocation(piece:Piece) : [number,number]{
+        const matchingTile = this.tileMap.find((tile)=>piece === tile.occupant)
+
+        if(!matchingTile){
+            throw {
+                message:"on _generatePieceLocation() could not locate piece within tileMap",
+                piece:piece
+            }
+        }
+
+        const tileIndex = this.tileMap.indexOf(matchingTile)
+
+        return this._indexToCoordinate(tileIndex)
+    }
+
     _indexToCoordinate(index:number) : Coordinate {
         return [index % this.rowLength,Math.floor(index / this.rowLength)]
     }
@@ -238,6 +316,24 @@ export class ChessBoard implements Board {
         }
 
         return (coordinate[1] * this.rowLength) + coordinate[0]
+    }
+
+    _ConcatUnique(array_one:Array<any>, array_two:Array<any>,exclude? : Array<any>){
+        
+        for(let elem of array_one){
+            if(exclude?.includes(elem)){
+                array_one.splice(array_one.indexOf(elem),1)
+            }
+        }
+        for(let elem of array_two){
+            if(exclude?.includes(elem)){
+                continue
+            }
+            if(!array_one.includes(elem)){
+                array_one.push(elem)
+            }
+        }
+        return array_one
     }
 }
 
