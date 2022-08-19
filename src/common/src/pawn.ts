@@ -5,7 +5,18 @@ export class Pawn extends BlankPiece implements Piece {
     species: Species = "pawn"
     _pathingCharacteristics: PathingCharacteristics = {
         steps:1,
-        vectors:[{vector:[0,-1],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true}},{vector:[1,-1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true}},{vector:[-1,-1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true}},{vector:[0,-2],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,isOnlyMovableFromOriginalLocation:true}}],
+        vectors:[
+            //white
+            {vector:[0,-1],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,existsOnlyForPerspective:"white"}},
+            {vector:[1,-1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"white"}},
+            {vector:[-1,-1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"white"}},
+            {vector:[0,-2],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,isOnlyMovableFromOriginalLocation:true,existsOnlyForPerspective:"white"}},
+            //black
+            {vector:[0,1],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,existsOnlyForPerspective:"black"}},
+            {vector:[1,1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"black"}},
+            {vector:[-1,1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"black"}},
+            {vector:[0,2],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,isOnlyMovableFromOriginalLocation:true,existsOnlyForPerspective:"black"}},
+        ],
         isOnlyMovableToSafeTiles:false,
         isOnlyMovableToOccupiedTiles:false,
         isOnlyMovableFromOriginalLocation:false,
