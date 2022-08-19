@@ -6,12 +6,43 @@ export type Species = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king" |
 
 export type Coordinate = [insideIndex: number,outsideIndex: number]
 
+
+type Required<T> = {
+    [P in keyof T]-?: T[P];
+};
+
+interface _OptionalPathingCharacteristics {
+    steps?:number,
+    isOnlyMovableToSafeTiles?:boolean,
+    isOnlyMovableToOccupiedTiles?: boolean,
+    isOnlyMovableToEmptyTiles?:boolean,
+    isOnlyMovableFromOriginalLocation?:boolean,
+}
+
+export type VectorPathingCharacteristic = (Vector | {
+    vector:Vector, 
+    pathingCharacteristics:OptionalWalkPathingCharacteristics
+})
+
+
+export interface PathingCharacteristics extends Required<_OptionalPathingCharacteristics> {
+    vectors:VectorPathingCharacteristic[]
+}
+
+
+export interface OptionalWalkPathingCharacteristics extends _OptionalPathingCharacteristics {
+    ignoredObstacles?:Piece[]
+    startLocation?:Coordinate
+}
+
+
+
 export interface Piece {
     initialised: boolean
     parentBoard:Board
     perspective:Perspective
     species: Species
-    _pathingCharacteristics: { steps:number,vectors:Vector[],isOnlyMovableToSafeTiles:boolean }
+    _pathingCharacteristics: PathingCharacteristics
     
     inVision: Coordinate[]
     movableTo:Coordinate[]
@@ -22,11 +53,13 @@ export interface Piece {
     captured:boolean
     location:[number,number]
 
+    isUnmoved: boolean
+
     update(): void
     generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]}
     
     move(destination:Coordinate):void
-    walk(vector:Vector,{steps,startLocation,ignoredObstacles}? : {steps?: number, startLocation?: Coordinate, ignoredObstacles?: Piece[]}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }
+    walk(vector:Vector,config?:OptionalWalkPathingCharacteristics) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }
 
     onCaptured() : void
 
