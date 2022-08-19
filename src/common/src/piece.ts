@@ -1,8 +1,9 @@
-import { Coordinate,Piece,Board,Species,Perspective,Vector} from "./types";
+import { Coordinate,Piece,Board,Species,Perspective,Vector,PathingCharacteristics, VectorPathingCharacteristic, OptionalWalkPathingCharacteristics} from "./types";
 
 class BlankPiece implements Piece { //
     initialised:boolean = false
 
+    isUnmoved: boolean = true
 
     isPinned: boolean = false
     pinnedBy: Piece[] = []
@@ -11,10 +12,13 @@ class BlankPiece implements Piece { //
     movableTo: Coordinate[] = []
     location: [number, number] = [-1,-1];
     inVision: Coordinate[] = []
-    _pathingCharacteristics: { steps:number,vectors:Vector[],isOnlyMovableToSafeTiles:boolean } = {
+    _pathingCharacteristics: PathingCharacteristics = {
         steps:-1,
         vectors:[],
         isOnlyMovableToSafeTiles:false,
+        isOnlyMovableToOccupiedTiles:false,
+        isOnlyMovableFromOriginalLocation:false,
+        isOnlyMovableToEmptyTiles:false
     }
 
     constructor(public parentBoard:Board,public perspective:Perspective){}
@@ -43,7 +47,13 @@ class BlankPiece implements Piece { //
         let newInVision  : Coordinate[] = []
 
         for(let vector of this._pathingCharacteristics.vectors){
-            const pathing = this.walk(vector,{steps:this._pathingCharacteristics.steps})
+            let pathing
+            if(Array.isArray(vector)){
+                pathing = this.walk(vector,{steps:this._pathingCharacteristics.steps})
+            } else {
+                pathing = this.walk(vector.vector,{...this._pathingCharacteristics,...vector.pathingCharacteristics})
+            }
+
             newMovableTo = newMovableTo.concat(pathing.movableTo)
             newInVision = newInVision.concat(pathing.inVision)
         }
@@ -109,10 +119,12 @@ class BlankPiece implements Piece { //
         if(!this.movableTo.some(movableTo=> destination.every((val,indx) => val === movableTo[indx]))){
             throw Error(`invalid destination, not within movableTo.`)
         }
+
+        this.isUnmoved = false
         this.parentBoard.onPieceMove(this,destination)
     }
 
-    walk(vector:Vector,{steps = -1,startLocation = this.location, ignoredObstacles=[]} : {steps?:number,startLocation? : Coordinate, ignoredObstacles?: Piece[]} = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
+    walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
         let hasMetObstacle :boolean = false    
         let movableTo : Coordinate[] = []
         let inVision : Coordinate[] = []
@@ -122,7 +134,7 @@ class BlankPiece implements Piece { //
 
         let obstacle : Piece | null = null
         
-        while(!hasMetObstacle && (steps === -1 || stepsTaken < steps)){
+        while(!hasMetObstacle && (steps === -1 || stepsTaken < steps) && (!isOnlyMovableFromOriginalLocation || (isOnlyMovableFromOriginalLocation && this.isUnmoved))){
             const nextLocation : Coordinate = [lastLocation[0] + vector[0],lastLocation[1] + vector[1]]
 
             if(!this.parentBoard.tileDoesExist(nextLocation)){ //if next location is off the board
@@ -132,18 +144,24 @@ class BlankPiece implements Piece { //
             const nextTile = this.parentBoard.getTile(nextLocation)
             inVision.push(nextLocation)
 
-            if(this._pathingCharacteristics.isOnlyMovableToSafeTiles && this.parentBoard.tileIsInVisionOfPerspective(nextTile,this.perspective === "white" ? "black" : "white")){ //next tile is threatened and walkUntilThreatened paramter was passed as true
-                lastLocation = nextLocation
-                stepsTaken ++
-                continue
+            if(isOnlyMovableToSafeTiles && this.parentBoard.tileIsInVisionOfPerspective(nextTile,this.perspective === "white" ? "black" : "white")){ //next tile is threatened and walkUntilThreatened paramter was passed as true
+                if(nextTile.occupant === null){
+                    lastLocation = nextLocation
+                    stepsTaken ++
+                    continue
+                } else{
+                    break
+                }
             }
 
             if(nextTile.occupant === null){
-                movableTo.push(nextLocation)
+                if(!isOnlyMovableToOccupiedTiles) {
+                    movableTo.push(nextLocation)
+                }
             }
 
             if(nextTile.occupant !== null && !ignoredObstacles.includes(nextTile.occupant)){
-                if(nextTile.occupant.perspective !== this.perspective){
+                if(nextTile.occupant.perspective !== this.perspective && !isOnlyMovableToEmptyTiles){
                     movableTo.push(nextLocation)
                 }
 
@@ -194,7 +212,9 @@ class BlankPiece implements Piece { //
     isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}{
         const locationDifference : Vector = [piece.location[0] - this.location[0],piece.location[1] - this.location[1]]
 
-        for(let vector of this._pathingCharacteristics.vectors){
+        for(const vectorCharacteristic of this._pathingCharacteristics.vectors){
+            const vector = this._getVectorFromVectorCharacteristic(vectorCharacteristic)
+
             if(((locationDifference[0] >= 0 && vector[0] >= 0) || (locationDifference[0] < 0 && vector[0] < 0))  && ((locationDifference[1] >= 0 && vector[1] >= 0) || (locationDifference[1] < 0 && vector[1] < 0))){ //if vector is postive / negative aswell as location Difference translation
                 if(locationDifference[0] % vector[0] === 0 && locationDifference[1] % vector[1] === 0){
                     return {
@@ -216,6 +236,15 @@ class BlankPiece implements Piece { //
     getOpposingPerspective() : Perspective{
         return this.perspective === "white" ? "black" : "white"
     }
+
+    _getVectorFromVectorCharacteristic(vectorCharacteristic : VectorPathingCharacteristic) : Vector {
+        if(Array.isArray(vectorCharacteristic)){
+            return vectorCharacteristic
+        } else {
+           return vectorCharacteristic.vector
+        }
+    }
+
 }
 
 export default BlankPiece
