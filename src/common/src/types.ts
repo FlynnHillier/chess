@@ -33,6 +33,7 @@ export interface PathingCharacteristics extends Required<_OptionalPathingCharact
 export interface OptionalWalkPathingCharacteristics extends _OptionalPathingCharacteristics {
     ignoredObstacles?:Piece[]
     startLocation?:Coordinate
+    existsOnlyForPerspective?:false | Perspective
 }
 
 

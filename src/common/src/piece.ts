@@ -124,7 +124,7 @@ class BlankPiece implements Piece { //
         this.parentBoard.onPieceMove(this,destination)
     }
 
-    walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
+    walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation,existsOnlyForPerspective = false} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
         let hasMetObstacle :boolean = false    
         let movableTo : Coordinate[] = []
         let inVision : Coordinate[] = []
@@ -134,7 +134,7 @@ class BlankPiece implements Piece { //
 
         let obstacle : Piece | null = null
         
-        while(!hasMetObstacle && (steps === -1 || stepsTaken < steps) && (!isOnlyMovableFromOriginalLocation || (isOnlyMovableFromOriginalLocation && this.isUnmoved))){
+        while(!hasMetObstacle && (steps === -1 || stepsTaken < steps) && (!isOnlyMovableFromOriginalLocation || (isOnlyMovableFromOriginalLocation && this.isUnmoved)) && (!existsOnlyForPerspective || existsOnlyForPerspective === this.perspective)){
             const nextLocation : Coordinate = [lastLocation[0] + vector[0],lastLocation[1] + vector[1]]
 
             if(!this.parentBoard.tileDoesExist(nextLocation)){ //if next location is off the board
