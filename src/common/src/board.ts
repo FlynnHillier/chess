@@ -3,6 +3,7 @@ import TileObject from "./tile";
 
 import Bishop from "./bishop";
 import Rook from "./rook";
+import Queen from "./queen";
 
 export class ChessBoard implements Board {
     initialised = false
@@ -56,7 +57,8 @@ export class ChessBoard implements Board {
 
         let piecesForInit : Piece[] = []
 
-        for(let piece of pieceMap){
+        for(let index = 0; index < pieceMap.length; index++){
+            const piece = pieceMap[index]
             if(piece !== null){
                 this.activePieces.push(piece)
                 if(piece.species === "king"){
@@ -71,7 +73,14 @@ export class ChessBoard implements Board {
                     this.forVisionUpdateOnEveryMove.push(piece)
                 }
             }
-            this.tileMap.push(new TileObject(piece))
+
+            if(index < this.rowLength){ //if tile is within first row
+                this.tileMap.push(new TileObject(piece,"white"))
+            } else if(index >= pieceMap.length - this.rowLength) { //if tile is within last row
+                this.tileMap.push(new TileObject(piece,"black"))
+            } else{
+                this.tileMap.push(new TileObject(piece,false))
+            }
         }
 
         if(!kingPresence.white || !kingPresence.black){
@@ -127,12 +136,27 @@ export class ChessBoard implements Board {
             anotherPiece.update()
         }
 
+        if(piece.species === "pawn" && targetTile.willUpgradePawns === piece.perspective){
+            this.upgradePawn(piece)
+        }
+
         this.updateMoveToSafeTileOnlyPieces()
 
         this.checkForPins()
 
         this.changeTurn()
     }
+
+    upgradePawn(pawn:Piece){
+        const replacementPiece = new Queen(this,pawn.perspective)
+        this.activePieces.splice(this.activePieces.indexOf(pawn),1) //remove pawn from active pieces
+        replacementPiece.location = pawn.location
+        replacementPiece.initialised = true
+        this.getTile(pawn.location).occupant = replacementPiece
+        this.activePieces.push(replacementPiece)
+        replacementPiece.update()
+    }
+
 
     updateMoveToSafeTileOnlyPieces() : void{
         for (let piece of this.forVisionUpdateOnEveryMove){

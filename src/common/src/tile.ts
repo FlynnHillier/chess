@@ -1,9 +1,9 @@
-import { Piece, Tile } from "./types";
+import { Perspective, Piece, Tile } from "./types";
 
 class TileObject implements Tile {
     inVisionOf: Piece[] = []
 
-    constructor(public occupant: null | Piece){}
+    constructor(public occupant: null | Piece,public willUpgradePawns : false | Perspective = false){}
 
     onInVisionOf(piece: Piece): void {
         if(!this.inVisionOf.includes(piece)){
