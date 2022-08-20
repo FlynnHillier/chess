@@ -216,7 +216,7 @@ export class ChessBoard implements Board {
 
         if(threateningPieces.length === 1){ //friendly pieces may be able to move to block said piece
             const threateningVector = threateningPieces[0].isRelatingVector(relevantKing).vector
-            for(let location of threateningPieces[0].walk(threateningVector,{steps:threateningPieces[0]._pathingCharacteristics.steps}).inVision){ //for location in threatening path of piece that threatens king (check for friendly pieces that can move to block its path)
+            for(let location of threateningPieces[0].walk(threateningVector,{steps:threateningPieces[0]._pathingCharacteristics.steps}).inVision.concat([threateningPieces[0].location])){ //for location in threatening path of piece that threatens king (check for friendly pieces that can move to block its path)
                 for(let friendlyPiece of this.getTile(location).inVisionOf.filter(piece => piece.perspective === perspective)){ //for friendly piece that can see see the tile in question
                     if(friendlyPiece.movableTo.some(movableTo=> location.every((val,indx) => val === movableTo[indx]))){ //if friendly piece is allowed to move to this tile
                         return false
