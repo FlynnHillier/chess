@@ -75,18 +75,15 @@ class BlankPiece implements Piece { //
         if(this._pathingCharacteristics.isOnlyMovableToSafeTiles){ //removes all tiles from movable to that will be unsafe on next move also, after it has moved.         
             let unsafeTilesForNextMove : Coordinate[] = []
             
-            for(let threat of this.parentBoard.getTile(this.location).inVisionOf){
-                if(threat.perspective !== this.getOpposingPerspective()){
-                    continue
-                }
+            for(let threat of this.parentBoard.getTile(this.location).inVisionOf.filter(piece => piece.perspective === this.getOpposingPerspective())){
                 const relativeVectorResult = threat.isRelatingVector(this)
-                unsafeTilesForNextMove = unsafeTilesForNextMove.concat(threat.walk(relativeVectorResult.vector).inVision)
+                unsafeTilesForNextMove = unsafeTilesForNextMove.concat(threat.walk(relativeVectorResult.vector,{ignoredObstacles:[this]}).inVision)
             }
 
             let validMovableTo : Coordinate[] = []
 
             for(let location of newMovableTo){
-                if(!unsafeTilesForNextMove.some(movableTo=> location.every((val,indx) => val === movableTo[indx]))){
+                if(!unsafeTilesForNextMove.some(unafeTileLocation=> location.every((val,indx) => val === unafeTileLocation[indx]))){
                     validMovableTo.push(location)
                 }
             }
@@ -210,17 +207,17 @@ class BlankPiece implements Piece { //
 
 
     isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}{
+        
         const locationDifference : Vector = [piece.location[0] - this.location[0],piece.location[1] - this.location[1]]
 
         for(const vectorCharacteristic of this._pathingCharacteristics.vectors){
             const vector = this._getVectorFromVectorCharacteristic(vectorCharacteristic)
-
-            if(((locationDifference[0] >= 0 && vector[0] >= 0) || (locationDifference[0] < 0 && vector[0] < 0))  && ((locationDifference[1] >= 0 && vector[1] >= 0) || (locationDifference[1] < 0 && vector[1] < 0))){ //if vector is postive / negative aswell as location Difference translation
-                if(locationDifference[0] % vector[0] === 0 && locationDifference[1] % vector[1] === 0){
+            if(((locationDifference[0] > 0 && vector[0] > 0) || (locationDifference[0] < 0 && vector[0] < 0) || (locationDifference[0] === 0 && vector[0] === 0))  && ((locationDifference[1] > 0 && vector[1] > 0) || (locationDifference[1] < 0 && vector[1] < 0) || (locationDifference[1] === 0 && vector[1] === 0))){ //if vector is postive / negative aswell as location Difference translation                
+                if((locationDifference[0] % vector[0] === 0 || locationDifference[0] === 0 && vector[0] === 0) && (locationDifference[1] % vector[1] === 0 || locationDifference[1] === 0 && vector[1] === 0)){
                     return {
                         exists:true,
                         vector:vector,
-                        stepsRequired:locationDifference[0] / vector[0]
+                        stepsRequired:locationDifference[0] !== 0 ? locationDifference[0] / vector[0] : locationDifference[1] !== 0 ? locationDifference[1] / vector[1] : 0
                     }
                 }
             }

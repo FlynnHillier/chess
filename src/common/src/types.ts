@@ -72,6 +72,7 @@ export interface Piece {
 }
 
 export interface Tile {
+    willUpgradePawns: false | Perspective,
     occupant:null | Piece,
     inVisionOf:Piece[],
     onInVisionOf(piece:Piece):void
