@@ -64,7 +64,7 @@ class BlankPiece implements Piece { //
         if(this.isPinned){
             newMovableTo = []
             if(this.pinnedBy.length === 1){ //checks if the pinned piece can potentially move to capture the piece that is pinning it
-                const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0])
+                const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0].location)
                 if(isRelatingVectorResult.exists){
                     newMovableTo = this.walk(isRelatingVectorResult.vector,{steps:this._pathingCharacteristics.steps}).movableTo
                 }
@@ -76,7 +76,7 @@ class BlankPiece implements Piece { //
             let unsafeTilesForNextMove : Coordinate[] = []
             
             for(let threat of this.parentBoard.getTile(this.location).inVisionOf.filter(piece => piece.perspective === this.getOpposingPerspective())){
-                const relativeVectorResult = threat.isRelatingVector(this)
+                const relativeVectorResult = threat.isRelatingVector(this.location)
                 unsafeTilesForNextMove = unsafeTilesForNextMove.concat(threat.walk(relativeVectorResult.vector,{ignoredObstacles:[this]}).inVision)
             }
 
@@ -121,7 +121,7 @@ class BlankPiece implements Piece { //
         this.parentBoard.onPieceMove(this,destination)
     }
 
-    walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation,existsOnlyForPerspective = false} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
+    walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation,existsOnlyForPerspective = false,canCapture = true} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
         let hasMetObstacle :boolean = false    
         let movableTo : Coordinate[] = []
         let inVision : Coordinate[] = []
@@ -141,7 +141,7 @@ class BlankPiece implements Piece { //
             const nextTile = this.parentBoard.getTile(nextLocation)
             inVision.push(nextLocation)
 
-            if(isOnlyMovableToSafeTiles && this.parentBoard.tileIsInVisionOfPerspective(nextTile,this.perspective === "white" ? "black" : "white")){ //next tile is threatened and walkUntilThreatened paramter was passed as true
+            if(isOnlyMovableToSafeTiles && this.parentBoard.tileIsThreatenedByPerspective(nextTile,this.getOpposingPerspective())){ //next tile is threatened and walkUntilThreatened paramter was passed as true
                 if(nextTile.occupant === null){
                     lastLocation = nextLocation
                     stepsTaken ++
@@ -158,7 +158,7 @@ class BlankPiece implements Piece { //
             }
 
             if(nextTile.occupant !== null && !ignoredObstacles.includes(nextTile.occupant)){
-                if(nextTile.occupant.perspective !== this.perspective && !isOnlyMovableToEmptyTiles){
+                if(nextTile.occupant.perspective === this.getOpposingPerspective() && !isOnlyMovableToEmptyTiles && canCapture){
                     movableTo.push(nextLocation)
                 }
 
@@ -194,7 +194,7 @@ class BlankPiece implements Piece { //
         let pinnedBy: Piece[] = []
         for(let piece of this.parentBoard.getTile(this.location).inVisionOf){
             if(piece.perspective === this.getOpposingPerspective()){
-                const relevantVector = piece.isRelatingVector(this).vector as Vector
+                const relevantVector = piece.isRelatingVector(this.location).vector as Vector
                 const pathing = piece.walk(relevantVector,{ignoredObstacles:[this],steps:piece._pathingCharacteristics.steps})
                 if(pathing.obstacle === this.parentBoard.king[this.perspective]){
                     pinnedBy.push(piece)
@@ -206,17 +206,19 @@ class BlankPiece implements Piece { //
     }
 
 
-    isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}{
+    isRelatingVector(location:Coordinate) : {exists:boolean , vector: Vector, pathingCharacteristics:OptionalWalkPathingCharacteristics , stepsRequired:number}{
         
-        const locationDifference : Vector = [piece.location[0] - this.location[0],piece.location[1] - this.location[1]]
+        const locationDifference : Vector = [location[0] - this.location[0],location[1] - this.location[1]]
 
         for(const vectorCharacteristic of this._pathingCharacteristics.vectors){
             const vector = this._getVectorFromVectorCharacteristic(vectorCharacteristic)
+
             if(((locationDifference[0] > 0 && vector[0] > 0) || (locationDifference[0] < 0 && vector[0] < 0) || (locationDifference[0] === 0 && vector[0] === 0))  && ((locationDifference[1] > 0 && vector[1] > 0) || (locationDifference[1] < 0 && vector[1] < 0) || (locationDifference[1] === 0 && vector[1] === 0))){ //if vector is postive / negative aswell as location Difference translation                
                 if((locationDifference[0] % vector[0] === 0 || locationDifference[0] === 0 && vector[0] === 0) && (locationDifference[1] % vector[1] === 0 || locationDifference[1] === 0 && vector[1] === 0)){
                     return {
                         exists:true,
                         vector:vector,
+                        pathingCharacteristics:Array.isArray(vectorCharacteristic) ? {} : vectorCharacteristic.pathingCharacteristics,
                         stepsRequired:locationDifference[0] !== 0 ? locationDifference[0] / vector[0] : locationDifference[1] !== 0 ? locationDifference[1] / vector[1] : 0
                     }
                 }
@@ -226,6 +228,7 @@ class BlankPiece implements Piece { //
         return {
             exists:false,
             vector:[0,0],
+            pathingCharacteristics:{},
             stepsRequired:-1
         }
     }

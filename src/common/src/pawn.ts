@@ -7,15 +7,15 @@ export class Pawn extends BlankPiece implements Piece {
         steps:1,
         vectors:[
             //white
-            {vector:[0,-1],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,existsOnlyForPerspective:"white"}},
+            {vector:[0,-1],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,existsOnlyForPerspective:"white",canCapture:false}},
             {vector:[1,-1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"white"}},
             {vector:[-1,-1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"white"}},
-            {vector:[0,-2],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,isOnlyMovableFromOriginalLocation:true,existsOnlyForPerspective:"white"}},
+            {vector:[0,-1],pathingCharacteristics:{steps:2,isOnlyMovableToEmptyTiles:true,isOnlyMovableFromOriginalLocation:true,existsOnlyForPerspective:"white",canCapture:false}},
             //black
-            {vector:[0,1],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,existsOnlyForPerspective:"black"}},
+            {vector:[0,1],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,existsOnlyForPerspective:"black",canCapture:false}},
             {vector:[1,1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"black"}},
             {vector:[-1,1],pathingCharacteristics:{isOnlyMovableToOccupiedTiles:true,existsOnlyForPerspective:"black"}},
-            {vector:[0,2],pathingCharacteristics:{isOnlyMovableToEmptyTiles:true,isOnlyMovableFromOriginalLocation:true,existsOnlyForPerspective:"black"}},
+            {vector:[0,1],pathingCharacteristics:{steps:2,isOnlyMovableToEmptyTiles:true,isOnlyMovableFromOriginalLocation:true,existsOnlyForPerspective:"black",canCapture:false}},
         ],
         isOnlyMovableToSafeTiles:false,
         isOnlyMovableToOccupiedTiles:false,

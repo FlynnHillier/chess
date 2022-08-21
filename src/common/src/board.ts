@@ -74,12 +74,13 @@ export class ChessBoard implements Board {
                 }
             }
 
+            const tileLocation = this._indexToCoordinate(index)
             if(index < this.rowLength){ //if tile is within first row
-                this.tileMap.push(new TileObject(piece,"white"))
+                this.tileMap.push(new TileObject(piece,tileLocation,"white"))
             } else if(index >= pieceMap.length - this.rowLength) { //if tile is within last row
-                this.tileMap.push(new TileObject(piece,"black"))
+                this.tileMap.push(new TileObject(piece,tileLocation,"black"))
             } else{
-                this.tileMap.push(new TileObject(piece,false))
+                this.tileMap.push(new TileObject(piece,tileLocation,false))
             }
         }
 
@@ -202,20 +203,19 @@ export class ChessBoard implements Board {
     }
 
     isCheck(perspective:Perspective) : boolean{
-        const threateningPieces : Piece[] = this.getTile(this.king[perspective]!.location).inVisionOf.filter(piece => piece.perspective !== perspective)
-        return threateningPieces.length !== 0
+        return this.tileIsThreatenedByPerspective(this.getTile(this.king[perspective]!.location),this.king[perspective]!.getOpposingPerspective())
     }
 
     isCheckMateOnCheck(perspective:Perspective) : boolean{
         const relevantKing : Piece = this.king[perspective] as Piece
-        const threateningPieces : Piece[] = this.getTile(this.king[perspective]!.location).inVisionOf.filter(piece => piece.perspective !== perspective)
+        const threateningPieces : Piece[] = this.getTileThreatenedBy(this.getTile(this.king[perspective]!.location),this.king[perspective]!.getOpposingPerspective())
 
         if(relevantKing.movableTo.length !== 0) {
             return false
         }
 
         if(threateningPieces.length === 1){ //friendly pieces may be able to move to block said piece
-            const threateningVector = threateningPieces[0].isRelatingVector(relevantKing).vector
+            const threateningVector = threateningPieces[0].isRelatingVector(relevantKing.location).vector
             for(let location of threateningPieces[0].walk(threateningVector,{steps:threateningPieces[0]._pathingCharacteristics.steps}).inVision.concat([threateningPieces[0].location])){ //for location in threatening path of piece that threatens king (check for friendly pieces that can move to block its path)
                 for(let friendlyPiece of this.getTile(location).inVisionOf.filter(piece => piece.perspective === perspective)){ //for friendly piece that can see see the tile in question
                     if(friendlyPiece.movableTo.some(movableTo=> location.every((val,indx) => val === movableTo[indx]))){ //if friendly piece is allowed to move to this tile
@@ -252,7 +252,7 @@ export class ChessBoard implements Board {
 
         const threateningPieces : Piece[] = this.getTile(this.king[perspective]!.location).inVisionOf.filter(piece => piece.perspective !== perspective) //all pieces that threaten the king
         for(let threat of threateningPieces){
-            const relevantThreatVector = threat.isRelatingVector(this.king[perspective]!).vector
+            const relevantThreatVector = threat.isRelatingVector(this.king[perspective]!.location).vector
             const threatPath = threat.walk(relevantThreatVector,{steps:threat._pathingCharacteristics.steps}).inVision
             this.checkInfo[perspective].threateningPieces.push({
                 piece:threat,
@@ -283,14 +283,36 @@ export class ChessBoard implements Board {
 
     }
 
-    tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective) : boolean{
-        for(let piece of tile.inVisionOf){
-            if(piece.perspective === perspective){
+
+    getTileThreatenedBy(tile:Tile,perspective:Perspective) : Piece[] {
+        const threats : Piece[] = []
+        
+        for(let potentialThreat of tile.inVisionOf.filter(piece => piece.perspective === perspective)){
+            const relevantVector = potentialThreat.isRelatingVector(tile.location)
+            if(!relevantVector.pathingCharacteristics.isOnlyMovableToEmptyTiles){
+                threats.push(potentialThreat)
+            }
+        }
+
+        return threats
+    }
+
+    tileIsThreatenedByPerspective(tile:Tile,perspective:Perspective) : boolean {
+        for(let potentialThreat of tile.inVisionOf.filter(piece => piece.perspective === perspective)){
+            const relevantVector = potentialThreat.isRelatingVector(tile.location)
+            if(!relevantVector.pathingCharacteristics.isOnlyMovableToEmptyTiles){
                 return true
             }
         }
+
         return false
     }
+
+
+    tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective) : boolean{
+        return tile.inVisionOf.filter(piece => piece.perspective === perspective).length !== 0
+    }
+
 
     tileDoesExist(location:Coordinate){
         if(location[0] < 0 || location[1] < 0){
