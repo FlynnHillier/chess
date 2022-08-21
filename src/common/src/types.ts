@@ -19,10 +19,10 @@ interface _OptionalPathingCharacteristics {
     isOnlyMovableFromOriginalLocation?:boolean,
 }
 
-export type VectorPathingCharacteristic = (Vector | {
+export type VectorPathingCharacteristic = ({
     vector:Vector, 
     pathingCharacteristics:OptionalWalkPathingCharacteristics
-})
+} | Vector)
 
 
 export interface PathingCharacteristics extends Required<_OptionalPathingCharacteristics> {
@@ -33,6 +33,7 @@ export interface PathingCharacteristics extends Required<_OptionalPathingCharact
 export interface OptionalWalkPathingCharacteristics extends _OptionalPathingCharacteristics {
     ignoredObstacles?:Piece[]
     startLocation?:Coordinate
+    canCapture?: boolean
     existsOnlyForPerspective?:false | Perspective
 }
 
@@ -66,12 +67,13 @@ export interface Piece {
 
     getPinnedBy() : Piece[]
 
-    isRelatingVector(piece:Piece) : {exists:boolean , vector: Vector , stepsRequired:number}
+    isRelatingVector(location:Coordinate) : {exists:boolean , vector: Vector, pathingCharacteristics:OptionalWalkPathingCharacteristics , stepsRequired:number}
 
     getOpposingPerspective() : Perspective
 }
 
 export interface Tile {
+    location:Coordinate,
     willUpgradePawns: false | Perspective,
     occupant:null | Piece,
     inVisionOf:Piece[],
@@ -121,6 +123,7 @@ export interface Board {
     changeTurn() : void
     onTurnChange() : void
 
+    tileIsThreatenedByPerspective(tile:Tile,perspective:Perspective) : boolean
     tileIsInVisionOfPerspective(tile:Tile,perspective:Perspective):boolean
     tileDoesExist(location:Coordinate) : boolean
     getTile(location:Coordinate):Tile
