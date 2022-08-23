@@ -12,8 +12,10 @@ export class ChessBoard implements Board {
     activePieces: Piece[] = []
 
     currentTurn : Perspective = "white"
+    turnCount : number = 0
 
     forVisionUpdateOnEveryMove : Piece[] = []
+    forUpdateOnNextMove : Piece[] = []
 
     checkInfo : { 
         white: { status: "none" | "check" | "checkmate"; threateningPieces: { piece: Piece; alongPath: Coordinate[]; }[]; }
@@ -105,7 +107,9 @@ export class ChessBoard implements Board {
         this.initialised = true
     }
 
-    onPieceMove(piece: Piece,moveTo:Coordinate): void {
+    onPieceMove(piece: Piece,moveTo:Coordinate,isFirstMove : boolean = false): void {
+        const relatingVectorResult = piece.isRelatingVector(moveTo)
+        
         let originTile = this.getTile(piece.location) as Tile
         let targetTile = this.getTile(moveTo)
         let excludeFromUpdate : Piece[] = [piece]
@@ -119,13 +123,20 @@ export class ChessBoard implements Board {
 
         targetTile.occupant = piece //move to destination tile
 
-
+        if(piece.canEnPassant){ //will capture piece if enpassant move
+            const matchingEnPassantValidMove = piece.enPassantMovableTo.find(enPassantMove => JSON.stringify(enPassantMove.location) === JSON.stringify(moveTo))
+            if(matchingEnPassantValidMove !== undefined){
+                this.capturePiece(matchingEnPassantValidMove.piece)
+            }
+        }
 
         if(this.checkInfo[this.currentTurn].status === "check"){
             this.onNoLongerCheck(this.currentTurn)
         }
 
-        const piecesForUpdate : Piece[] =  this._ConcatUnique(targetTile.inVisionOf,originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
+        const piecesForUpdate : Piece[] =  this._ConcatUnique(this._ConcatUnique(targetTile.inVisionOf,this.forUpdateOnNextMove),originTile.inVisionOf,excludeFromUpdate)  //targetTile.inVisionOf.concat(originTile.inVisionOf)
+
+        this.forUpdateOnNextMove = []
 
         targetTile.inVisionOf = []
         originTile.inVisionOf = []
@@ -135,6 +146,17 @@ export class ChessBoard implements Board {
 
         for(let anotherPiece of piecesForUpdate){ //updates vision of all affected tiles by the move at hand
             anotherPiece.update()
+        }
+
+        if(isFirstMove && piece.canBeEnPassanted){
+            if(relatingVectorResult.exists !== true){
+                throw Error(`relating vector result does not exist for en passant check.`)
+            }
+
+            if(relatingVectorResult.stepsRequired == 2){
+                const verticalDirection = relatingVectorResult.vector[1] < 0 ? -1 : 1
+                piece.presentSelfForEnPassant(verticalDirection)
+            }
         }
 
         if(piece.species === "pawn" && targetTile.willUpgradePawns === piece.perspective){
@@ -191,6 +213,13 @@ export class ChessBoard implements Board {
     }
 
     capturePiece(piece:Piece) : void {
+        const tile = this.getTile(piece.location)
+        tile.occupant = null
+
+        for(let anotherPiece of tile.inVisionOf){
+            anotherPiece.update()
+        }
+        
         this.getTile(piece.location).occupant === null
         this.captured[piece.perspective === "white" ? "black" : "white"].push(piece)
         for(let location of piece.inVision){
@@ -198,7 +227,7 @@ export class ChessBoard implements Board {
         }
 
         this.activePieces.splice(this.activePieces.indexOf(piece),1)
-
+        
         piece.onCaptured()
     }
 
@@ -291,6 +320,7 @@ export class ChessBoard implements Board {
 
     onTurnChange() : void {
         console.log(this.currentTurn)
+        this.turnCount ++
 
         if(this.isCheck(this.currentTurn)){
             this.onCheck(this.currentTurn)
