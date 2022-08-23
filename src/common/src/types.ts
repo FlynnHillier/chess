@@ -124,7 +124,7 @@ export interface Board {
     updateMoveToSafeTileOnlyPieces() : void
     checkForPins() : void
 
-    capturePiece(piece:Piece) : void
+    capturePiece(piece:Piece,{} : {causeUpdates: boolean}) : void
 
     isCheck(perspective:Perspective) : boolean
     isCheckMateOnCheck(perspective:Perspective) : boolean
