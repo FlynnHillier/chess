@@ -148,7 +148,7 @@ export class ChessBoard implements Board {
         this.changeTurn()
     }
 
-    upgradePawn(pawn:Piece){
+    upgradePawn(pawn:Piece) : void{
         const replacementPiece = new Queen(this,pawn.perspective)
         this.activePieces.splice(this.activePieces.indexOf(pawn),1) //remove pawn from active pieces
         replacementPiece.location = pawn.location
@@ -228,6 +228,17 @@ export class ChessBoard implements Board {
         return true
     }
 
+
+    isStalemate(perspective:Perspective) : boolean { //only to be called after this.isCheck() evaluates to false
+        for(let friendlyPiece of this.activePieces.filter(piece => piece.perspective === perspective)){
+            if(friendlyPiece.movableTo.length !== 0){
+                return false
+            }
+        }
+        return true
+    }
+
+
     onNoLongerCheck(perspective:Perspective) : void {
 
         console.log(`${perspective} is no longer in check`)
@@ -269,6 +280,10 @@ export class ChessBoard implements Board {
         console.log(`${perspective} has been checkmated!`)
     }
 
+    onStaleMate() : void {
+        console.log("stalemate!")
+    }
+
     changeTurn() : void {
         this.currentTurn = this.currentTurn === "white" ? "black" : "white"
         this.onTurnChange()
@@ -279,6 +294,10 @@ export class ChessBoard implements Board {
 
         if(this.isCheck(this.currentTurn)){
             this.onCheck(this.currentTurn)
+        } else{
+            if(this.isStalemate(this.currentTurn)){
+                this.onStaleMate()
+            }
         }
 
     }

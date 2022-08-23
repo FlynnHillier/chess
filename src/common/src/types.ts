@@ -120,6 +120,9 @@ export interface Board {
     onCheck(perspective:Perspective) : void
     onCheckMate(perspective:Perspective) : void
 
+    isStalemate(perspective:Perspective) : boolean 
+    onStaleMate() : void
+
     changeTurn() : void
     onTurnChange() : void
 
