@@ -21,10 +21,21 @@ class BlankPiece implements Piece { //
         isOnlyMovableToEmptyTiles:false
     }
 
+    canEnPassant:boolean = false
+    canBeEnPassanted:boolean = false
+    enPassantMovableTo: { piece:Piece, location:Coordinate, validUntilTurn:number }[] = []
+
     constructor(public parentBoard:Board,public perspective:Perspective){}
 
     update(): void { //updates this.inVision & this.movableTo , aswell as updating all affected tiles
         const oldInVision : Coordinate[] = this.inVision
+        if(this.canEnPassant){
+            for(let enPassantOption of this.enPassantMovableTo){ //remove all now invalid enPassant moves
+                if(this.parentBoard.turnCount >= enPassantOption.validUntilTurn) {
+                    this.enPassantMovableTo.splice(this.enPassantMovableTo.indexOf(enPassantOption),1)
+                }
+            }
+        }
 
         const generatedVisionResult = this.generateVision()
 
@@ -58,7 +69,14 @@ class BlankPiece implements Piece { //
             newInVision = newInVision.concat(pathing.inVision)
         }
 
-
+        if(this.canEnPassant){ //update for all valid enPassant moves
+            for(let enPassantOption of this.enPassantMovableTo){//check each enPassant option
+                if(this.parentBoard.turnCount < enPassantOption.validUntilTurn){ //if valid on this turn
+                        newMovableTo.push(enPassantOption.location)
+                        newInVision.push(enPassantOption.location)
+                }
+            }
+        }
 
 
         if(this.isPinned){
@@ -117,8 +135,9 @@ class BlankPiece implements Piece { //
             throw Error(`invalid destination, not within movableTo.`)
         }
 
+        const isFirstMove = this.isUnmoved
         this.isUnmoved = false
-        this.parentBoard.onPieceMove(this,destination)
+        this.parentBoard.onPieceMove(this,destination,isFirstMove)
     }
 
     walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation,existsOnlyForPerspective = false,canCapture = true} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
@@ -187,6 +206,34 @@ class BlankPiece implements Piece { //
         
         this.isPinned = false
         this.pinnedBy = []
+    }
+
+    presentSelfForEnPassant(verticalDirection: -1 | 1) : void { //should only be called on first move, if moved two tiles
+        if(this.canBeEnPassanted){
+            const vectorsToCheck : Vector[] = [[1,0],[-1,0]]
+
+            for(let vector of vectorsToCheck){
+
+                const potentialPieceCoordinate : Coordinate = [this.location[0] + vector[0],this.location[1] + vector[1]]
+
+                if(this.parentBoard.tileDoesExist(potentialPieceCoordinate) === true){
+                    const occupant = (this.parentBoard.getTile(potentialPieceCoordinate).occupant)
+                    if(occupant !== null) {
+                        if(occupant.perspective === this.getOpposingPerspective() && occupant.canEnPassant === true){
+                            occupant.enPassantMovableTo.push(
+                                {
+                                    piece:this,
+                                    location:[this.location[0],this.location[1] + (verticalDirection * -1)],
+                                    validUntilTurn:this.parentBoard.turnCount + 1
+                                }
+                            )
+                            occupant.update()
+                            this.parentBoard.forUpdateOnNextMove.push(occupant)
+                        }
+                    }
+                }
+            }
+        }
     }
 
 

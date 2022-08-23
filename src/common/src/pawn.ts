@@ -23,6 +23,8 @@ export class Pawn extends BlankPiece implements Piece {
         isOnlyMovableToEmptyTiles:false
     }
 
+    canEnPassant: boolean = true
+    canBeEnPassanted: boolean = true
 }
 
 export default Pawn

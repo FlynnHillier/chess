@@ -57,6 +57,14 @@ export interface Piece {
 
     isUnmoved: boolean
 
+    canEnPassant:boolean
+    canBeEnPassanted:boolean
+    enPassantMovableTo: {
+        piece:Piece,
+        location:Coordinate,
+        validUntilTurn:number
+    }[]
+
     update(): void
     generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]}
     
@@ -70,6 +78,8 @@ export interface Piece {
     isRelatingVector(location:Coordinate) : {exists:boolean , vector: Vector, pathingCharacteristics:OptionalWalkPathingCharacteristics , stepsRequired:number}
 
     getOpposingPerspective() : Perspective
+
+    presentSelfForEnPassant(verticalDirection: -1 | 1) : void
 }
 
 export interface Tile {
@@ -89,8 +99,10 @@ export interface Board {
     rowLength:number,
 
     currentTurn: Perspective
+    turnCount : number
 
     forVisionUpdateOnEveryMove : Piece[]
+    forUpdateOnNextMove : Piece[]
 
     checkInfo : { 
         white: { status: "none" | "check" | "checkmate"; threateningPieces: { piece: Piece; alongPath: Coordinate[]; }[]; }
@@ -107,7 +119,7 @@ export interface Board {
 
 
     init({tileMap,tilesPerRow}:{tileMap?:(Piece | null)[],tilesPerRow?:number}):void
-    onPieceMove(piece:Piece,moveTo:Coordinate):void
+    onPieceMove(piece:Piece,moveTo:Coordinate,isFirstMove : boolean):void
 
     updateMoveToSafeTileOnlyPieces() : void
     checkForPins() : void
