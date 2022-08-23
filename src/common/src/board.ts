@@ -126,7 +126,7 @@ export class ChessBoard implements Board {
         if(piece.canEnPassant){ //will capture piece if enpassant move
             const matchingEnPassantValidMove = piece.enPassantMovableTo.find(enPassantMove => JSON.stringify(enPassantMove.location) === JSON.stringify(moveTo))
             if(matchingEnPassantValidMove !== undefined){
-                this.capturePiece(matchingEnPassantValidMove.piece)
+                this.capturePiece(matchingEnPassantValidMove.piece,{causeUpdates:true})
             }
         }
 
@@ -212,12 +212,14 @@ export class ChessBoard implements Board {
         }
     }
 
-    capturePiece(piece:Piece) : void {
+    capturePiece(piece:Piece,{causeUpdates = false} : {causeUpdates?: boolean} = {}) : void {
         const tile = this.getTile(piece.location)
         tile.occupant = null
 
-        for(let anotherPiece of tile.inVisionOf){
-            anotherPiece.update()
+        if(causeUpdates){
+            for(let anotherPiece of tile.inVisionOf){
+                anotherPiece.update()
+            }
         }
         
         this.getTile(piece.location).occupant === null
