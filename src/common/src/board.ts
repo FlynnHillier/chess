@@ -4,6 +4,9 @@ import TileObject from "./tile";
 import Bishop from "./bishop";
 import Rook from "./rook";
 import Queen from "./queen";
+import Knight from "./knight";
+import King from "./king";
+import Pawn from "./pawn";
 
 export class ChessBoard implements Board {
     initialised = false
@@ -51,7 +54,17 @@ export class ChessBoard implements Board {
 
     constructor(public perspective:Perspective){}
 
-    init({pieceMap = [null,null,null,null,new Rook(this,"white"),null,null,null,null] ,tilesPerRow = 3} : {pieceMap?:(Piece | null)[],tilesPerRow?:number} = {}) {
+    init({pieceMap = [
+            new Rook(this,"black"),new Knight(this,"black"),new Bishop(this,"black"),new Queen(this,"black"),new King(this,"black"),new Bishop(this,"black"),new Knight(this,"black"), new Rook(this,"black"),
+            new Pawn(this,"black"), new Pawn(this,"black"), new Pawn(this,"black"), new Pawn(this,"black"), new Pawn(this,"black"), new Pawn(this,"black"), new Pawn(this,"black"), new Pawn(this,"black"),
+            null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null,
+            new Pawn(this,"white"), new Pawn(this,"white"), new Pawn(this,"white"), new Pawn(this,"white"), new Pawn(this,"white"), new Pawn(this,"white"), new Pawn(this,"white"), new Pawn(this,"white"),
+            new Rook(this,"white"),new Knight(this,"white"),new Bishop(this,"white"),new Queen(this,"white"),new King(this,"white"),new Bishop(this,"white"),new Knight(this,"white"), new Rook(this,"white"),
+        ] 
+    ,tilesPerRow = 8} : {pieceMap?:(Piece | null)[],tilesPerRow?:number} = {}) {
 
         if(pieceMap.length % tilesPerRow !== 0){
             throw Error(`invalid pieceMap provided for rowLength of '${tilesPerRow}', pieceMap must be of a length that is an exact multiple of provided rowLength.`)
