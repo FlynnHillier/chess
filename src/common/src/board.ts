@@ -195,9 +195,9 @@ export class ChessBoard implements Board {
             this.upgradePawn(piece)
         }
 
-        this.updateMoveToSafeTileOnlyPieces()
-
         this.updateCastleMoves()
+
+        this.updateMoveToSafeTileOnlyPieces()
 
         this.checkForPins()
 
@@ -304,11 +304,11 @@ export class ChessBoard implements Board {
             }
         }
         
-        this.getTile(piece.location).occupant === null
-        this.captured[piece.perspective === "white" ? "black" : "white"].push(piece)
+        this.captured[piece.getOpposingPerspective()].push(piece)
         for(let location of piece.inVision){
             this.getTile(location).onNoLongerInVisionOf(piece)
         }
+        piece.inVision = []
 
         this.activePieces.splice(this.activePieces.indexOf(piece),1)
         
