@@ -1,4 +1,4 @@
-import { Coordinate,Piece,Board,Species,Perspective,Vector,PathingCharacteristics, VectorPathingCharacteristic, OptionalWalkPathingCharacteristics} from "./types";
+import { Coordinate,Piece,Board,Species,Perspective,Vector,PathingCharacteristics, VectorPathingCharacteristic, OptionalWalkPathingCharacteristics, CastleMoveSet} from "./types";
 
 class BlankPiece implements Piece { //
     initialised:boolean = false
@@ -69,6 +69,13 @@ class BlankPiece implements Piece { //
             newInVision = newInVision.concat(pathing.inVision)
         }
 
+
+        if(this.species === "king"){ //castle
+            for(let castleMoveSet of this.parentBoard.castleMoves[this.perspective]){
+                newMovableTo.push(castleMoveSet.kingDestination) //only push to movable to
+            }
+        }
+
         if(this.canEnPassant){ //update for all valid enPassant moves
             for(let enPassantOption of this.enPassantMovableTo){//check each enPassant option
                 if(this.parentBoard.turnCount < enPassantOption.validUntilTurn){ //if valid on this turn
@@ -130,14 +137,14 @@ class BlankPiece implements Piece { //
         }
     }
 
-    move(destination: Coordinate): void { //moves piece
+    move(destination: Coordinate,{causeTurnChange = true} : {causeTurnChange? : boolean} = {}): void { //moves piece
         if(!this.movableTo.some(movableTo=> destination.every((val,indx) => val === movableTo[indx]))){
             throw Error(`invalid destination, not within movableTo.`)
         }
 
         const isFirstMove = this.isUnmoved
         this.isUnmoved = false
-        this.parentBoard.onPieceMove(this,destination,isFirstMove)
+        this.parentBoard.onPieceMove(this,destination,{isFirstMove:isFirstMove,causeTurnChange:causeTurnChange})
     }
 
     walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation,existsOnlyForPerspective = false,canCapture = true} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
@@ -235,7 +242,7 @@ class BlankPiece implements Piece { //
             }
         }
     }
-
+    
 
     getPinnedBy(): Piece[]{
         let pinnedBy: Piece[] = []
