@@ -87,13 +87,20 @@ class BlankPiece implements Piece { //
 
 
         if(this.isPinned){
-            newMovableTo = []
+            const overWriteMovableTo = [...newMovableTo]
             if(this.pinnedBy.length === 1){ //checks if the pinned piece can potentially move to capture the piece that is pinning it
-                const isRelatingVectorResult = this.isRelatingVector(this.pinnedBy[0].location)
-                if(isRelatingVectorResult.exists){
-                    newMovableTo = this.walk(isRelatingVectorResult.vector,{steps:this._pathingCharacteristics.steps}).movableTo
+                const pinningPiece = this.pinnedBy[0]
+                const pinningPieceVectorResult = pinningPiece.isRelatingVector(this.parentBoard.king[this.perspective]!.location)
+
+                const validBlockMoves = pinningPiece.walk(pinningPieceVectorResult.vector,{ignoredObstacles:[this]}).inVision.concat([pinningPiece.location])
+                
+                for(let move of newMovableTo){
+                    if(!(validBlockMoves.some(location => move.every((v,i) => v === location[i])))){ //remove all moves from newMovableTo that are not within the path of the pinning piece, or the pinning piece's location
+                        overWriteMovableTo.splice(overWriteMovableTo.indexOf(move),1)
+                    }
                 }
             }
+            newMovableTo = overWriteMovableTo
         }
 
 
