@@ -38,6 +38,12 @@ export interface OptionalWalkPathingCharacteristics extends _OptionalPathingChar
 }
 
 
+export interface CastleMoveSet {
+    rook:Piece,
+    kingDestination:Coordinate,
+    RookDestination:Coordinate,
+}
+
 
 export interface Piece {
     initialised: boolean
@@ -68,7 +74,7 @@ export interface Piece {
     update(): void
     generateVision() : {inVision:Coordinate[],movableTo:Coordinate[]}
     
-    move(destination:Coordinate):void
+    move(destination:Coordinate,config? : {causeTurnChange? : boolean}):void
     walk(vector:Vector,config?:OptionalWalkPathingCharacteristics) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }
 
     onCaptured() : void
@@ -116,13 +122,20 @@ export interface Board {
         white:Piece | null,
         black:Piece | null
     }
+    castleMoves : {
+        white: CastleMoveSet[]
+        black: CastleMoveSet[]
+    }
 
 
     init({tileMap,tilesPerRow}:{tileMap?:(Piece | null)[],tilesPerRow?:number}):void
-    onPieceMove(piece:Piece,moveTo:Coordinate,isFirstMove : boolean):void
+    onPieceMove(piece: Piece,moveTo:Coordinate,{isFirstMove,causeTurnChange} : {isFirstMove? : Boolean,causeTurnChange? : Boolean} ): void
 
     updateMoveToSafeTileOnlyPieces() : void
     checkForPins() : void
+
+    updateCastleMoves() : void
+    generateCastlePositions(perspective:Perspective) : CastleMoveSet[]
 
     capturePiece(piece:Piece,{} : {causeUpdates: boolean}) : void
 

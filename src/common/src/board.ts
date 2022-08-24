@@ -1,4 +1,4 @@
-import { Board,Perspective, Piece,Tile,Coordinate} from "./types"
+import { Board,Perspective, Piece,Tile,Coordinate,CastleMoveSet} from "./types"
 import TileObject from "./tile";
 
 import Bishop from "./bishop";
@@ -35,6 +35,14 @@ export class ChessBoard implements Board {
         black:null
     }
     captured: { white: Piece[]; black: Piece[] } = {
+        white:[],
+        black:[]
+    }
+
+    castleMoves : {
+        white: CastleMoveSet[]
+        black: CastleMoveSet[]
+    } = {
         white:[],
         black:[]
     }
@@ -98,6 +106,8 @@ export class ChessBoard implements Board {
             this._initialisePiece(piece,{isSecondInit:true})
         }
 
+        this.updateCastleMoves()
+
         this.checkForPins()
 
         if(this.isCheck("white") || this.isCheck("black")){
@@ -107,7 +117,7 @@ export class ChessBoard implements Board {
         this.initialised = true
     }
 
-    onPieceMove(piece: Piece,moveTo:Coordinate,isFirstMove : boolean = false): void {
+    onPieceMove(piece: Piece,moveTo:Coordinate,{isFirstMove = false,causeTurnChange = true} : {isFirstMove? : Boolean,causeTurnChange? : Boolean} = {} ): void {
         const relatingVectorResult = piece.isRelatingVector(moveTo)
         
         let originTile = this.getTile(piece.location) as Tile
@@ -129,6 +139,15 @@ export class ChessBoard implements Board {
                 this.capturePiece(matchingEnPassantValidMove.piece,{causeUpdates:true})
             }
         }
+
+        if(piece.species === "king"){ //check if castle has occured
+            const matchingMoveSet = this.castleMoves[piece.perspective].find(castleMoveSet => castleMoveSet.kingDestination.every((v,i) => v === moveTo[i]))
+            if(matchingMoveSet !== undefined){
+                matchingMoveSet.rook.move(matchingMoveSet.RookDestination,{causeTurnChange:false})
+                this.castleMoves[piece.perspective] = []
+            }
+        }
+
 
         if(this.checkInfo[this.currentTurn].status === "check"){
             this.onNoLongerCheck(this.currentTurn)
@@ -165,9 +184,13 @@ export class ChessBoard implements Board {
 
         this.updateMoveToSafeTileOnlyPieces()
 
+        this.updateCastleMoves()
+
         this.checkForPins()
 
-        this.changeTurn()
+        if(causeTurnChange === true){
+            this.changeTurn()
+        }
     }
 
     upgradePawn(pawn:Piece) : void{
@@ -211,6 +234,52 @@ export class ChessBoard implements Board {
             }
         }
     }
+
+
+    updateCastleMoves() : void {
+        const perspectivesForUpdate : Perspective[] = ["black","white"]
+        for(const perspective of perspectivesForUpdate){    
+            const previousCastlePositions = this.castleMoves[perspective]
+            this.castleMoves[perspective] = this.generateCastlePositions(perspective)
+            if(previousCastlePositions.length !== this.castleMoves[perspective].length ||  !previousCastlePositions.every(prevMoveSet => this.castleMoves[perspective].some(newMoveSet => prevMoveSet.rook === newMoveSet.rook))){ //if a change occured
+                this.king[perspective]!.update()
+            }
+        }
+    }
+
+
+    generateCastlePositions(perspective:Perspective) : CastleMoveSet[] {
+        if(this.isCheck(perspective) || this.king[perspective]?.isUnmoved === false){
+            return []
+        }
+
+        const castlePositions = []
+
+        for(let unMovedFriendlyRook of this.activePieces.filter(piece => piece.perspective === perspective && piece.species === "rook" && piece.isUnmoved === true)){
+            const relevantVectorResult = unMovedFriendlyRook.isRelatingVector(this.king[perspective]!.location)
+            if(relevantVectorResult.exists){
+                const path = unMovedFriendlyRook.walk(relevantVectorResult.vector)
+                if(path.obstacle === this.king[perspective]){
+                    const currentKingLocation : Coordinate = this.king[perspective]!.location
+                    const kingDestination : Coordinate = [currentKingLocation[0] + (relevantVectorResult.vector[0] > 0 ? -2 : 2),currentKingLocation[1]]
+                    const RookDestination : Coordinate = [currentKingLocation[0] + (relevantVectorResult.vector[0] > 0 ? -1 : 1),currentKingLocation[1]]
+
+                    if(!this.tileIsThreatenedByPerspective(this.getTile(kingDestination),this.king[perspective]!.getOpposingPerspective())){
+                        castlePositions.push({
+                            rook:unMovedFriendlyRook,
+                            kingDestination:kingDestination,
+                            RookDestination:RookDestination,
+                        })
+                    }
+                }
+            }
+        }
+
+        return castlePositions
+    }
+
+
+
 
     capturePiece(piece:Piece,{causeUpdates = false} : {causeUpdates?: boolean} = {}) : void {
         const tile = this.getTile(piece.location)
