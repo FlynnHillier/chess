@@ -149,9 +149,11 @@ class BlankPiece implements Piece { //
             throw Error(`invalid destination, not within movableTo.`)
         }
 
-        const isFirstMove = this.isUnmoved
-        this.isUnmoved = false
-        this.parentBoard.onPieceMove(this,destination,{isFirstMove:isFirstMove,causeTurnChange:causeTurnChange})
+        if(this.parentBoard.currentTurn === this.perspective){
+            const isFirstMove = this.isUnmoved
+            this.isUnmoved = false
+            this.parentBoard.onPieceMove(this,destination,{isFirstMove:isFirstMove,causeTurnChange:causeTurnChange})
+        }
     }
 
     walk(vector:Vector,{steps = this._pathingCharacteristics.steps,startLocation = this.location, ignoredObstacles=[],isOnlyMovableToSafeTiles = this._pathingCharacteristics.isOnlyMovableToSafeTiles, isOnlyMovableToOccupiedTiles = this._pathingCharacteristics.isOnlyMovableToOccupiedTiles, isOnlyMovableToEmptyTiles = this._pathingCharacteristics.isOnlyMovableToEmptyTiles,isOnlyMovableFromOriginalLocation = this._pathingCharacteristics.isOnlyMovableFromOriginalLocation,existsOnlyForPerspective = false,canCapture = true} : OptionalWalkPathingCharacteristics = {}) : {movableTo:Coordinate[], inVision:Coordinate[],obstacle:Piece | null }{ //returns all tiles in vision, and all tiles in vision & movableTo, along a given vector
