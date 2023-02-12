@@ -1,27 +1,24 @@
 {
   "name": "chess-online",
-  "version": "1.0.0",
+  "version": "0.0.1",
+  "author": "flynn hillier",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FlynnHillier/chess-online.git"
   },
-  "author": "flynn hillier",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/FlynnHillier/chess-online/issues"
-  },
-  "homepage": "https://github.com/FlynnHillier/chess-online#readme",
   "scripts": {
-    "build": "tsc -p .",
-    "build:watch": "tsc -p . --watch",
-    "start:server":"node dist/server/src/index.js"
+    "start": "yarn workspaces foreach -pi run start",
+    "build": "yarn workspaces foreach -pti run build"
   },
-
-  "private":true,
-  "workspaces":["src/server","src/client"],
-
   "devDependencies": {
     "ts-node": "^10.8.2",
     "typescript": "^4.7.4"
-  }
+  },
+  "workspaces": {
+    "packages": [
+      "src/*"
+    ]
+  },
+  "packageManager": "yarn@3.2.2"
 }
