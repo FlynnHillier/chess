@@ -47,11 +47,6 @@ const Chessboard = (props:Props) => {
 
 
     useEffect(()=>{
-        console.log(`is dragging ${isDraggingPiece}`)
-    },[isDraggingPiece])
-
-
-    useEffect(()=>{
         if(hoveredTile === null && isDraggingPiece === true){
             setIsDraggingPiece(false)
         }
